@@ -1726,6 +1726,17 @@ app.get('/', (req, res) => {
       color: #dbeafe;
       font-size: 18px;
     }
+    .admin-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .admin-close-btn {
+      display: none;
+      min-width: 0;
+      padding: 8px 12px;
+    }
     .admin-card {
       background: #111827;
       border: 1px solid #1f2937;
@@ -2053,12 +2064,25 @@ app.get('/', (req, res) => {
       .modal-actions {
         flex-direction: column;
       }
+      .header-actions > *,
+      .controls > *,
+      .modal-actions > * {
+        flex: 0 0 auto;
+      }
       .drawer-toggle,
       .action-link,
       button {
         width: 100%;
         justify-content: center;
         text-align: center;
+      }
+      .admin-panel-header {
+        align-items: flex-start;
+      }
+      .admin-close-btn {
+        display: inline-flex;
+        width: auto;
+        align-self: flex-start;
       }
       .summary {
         grid-template-columns: 1fr;
@@ -2180,7 +2204,10 @@ app.get('/', (req, res) => {
         </div>
       </div>
       <aside id="adminPanel" class="admin-panel">
-        <h2 class="admin-title">Admin Panel</h2>
+        <div class="admin-panel-header">
+          <h2 class="admin-title">Admin Panel</h2>
+          <button id="adminCloseBtn" class="admin-close-btn secondary-btn" type="button" aria-label="Close admin panel">Close</button>
+        </div>
         <div class="admin-card">
           <h3>Delete Order</h3>
           <label for="deleteOrderId">Order ID</label>
@@ -2224,6 +2251,7 @@ app.get('/', (req, res) => {
   </div>
   <script>
     const adminToggleBtn = document.getElementById('adminToggleBtn');
+    const adminCloseBtn = document.getElementById('adminCloseBtn');
     const adminOverlay = document.getElementById('adminOverlay');
     const editOrdersBtn = document.getElementById('editOrdersBtn');
     const saveChangesBtn = document.getElementById('saveChangesBtn');
@@ -2516,6 +2544,10 @@ app.get('/', (req, res) => {
     });
 
     adminOverlay.addEventListener('click', () => {
+      setAdminDrawerOpen(false);
+    });
+
+    adminCloseBtn.addEventListener('click', () => {
       setAdminDrawerOpen(false);
     });
 
