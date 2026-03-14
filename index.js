@@ -345,8 +345,11 @@ app.get('/place-order', (req, res) => {
       .action-link,
       button {
         width: auto;
+<<<<<<< HEAD
         padding: 4px 12px;
         border-radius: 8px;
+=======
+>>>>>>> 29e7fa9491f37d26a06e9d52c4ce4565ad7a2c8e
       }
     }
   </style>
@@ -745,8 +748,11 @@ app.get('/business-expenses', (req, res) => {
       .action-link,
       button {
         width: auto;
+<<<<<<< HEAD
         padding: 4px 12px;
         border-radius: 8px;
+=======
+>>>>>>> 29e7fa9491f37d26a06e9d52c4ce4565ad7a2c8e
       }
       .summary {
         grid-template-columns: 1fr;
@@ -1157,8 +1163,11 @@ app.get('/add-business-expense', (req, res) => {
       .action-link,
       button {
         width: auto;
+<<<<<<< HEAD
         padding: 4px 12px;
         border-radius: 8px;
+=======
+>>>>>>> 29e7fa9491f37d26a06e9d52c4ce4565ad7a2c8e
       }
     }
   </style>
@@ -2052,8 +2061,11 @@ app.get('/', (req, res) => {
       .action-link,
       button {
         width: auto;
+<<<<<<< HEAD
         padding: 4px 12px;
         border-radius: 8px;
+=======
+>>>>>>> 29e7fa9491f37d26a06e9d52c4ce4565ad7a2c8e
       }
       .summary {
         grid-template-columns: 1fr;
