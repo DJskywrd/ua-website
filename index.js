@@ -340,16 +340,15 @@ app.get('/place-order', (req, res) => {
         padding: 16px;
       }
       .header-row {
-        align-items: flex-start;
+        align-items: stretch;
       }
       .action-link,
       button {
-        width: auto;
-<<<<<<< HEAD
-        padding: 4px 12px;
-        border-radius: 8px;
-=======
->>>>>>> 29e7fa9491f37d26a06e9d52c4ce4565ad7a2c8e
+        width: 100%;
+        text-align: center;
+      }
+      button {
+        justify-self: stretch;
       }
     }
   </style>
@@ -737,22 +736,21 @@ app.get('/business-expenses', (req, res) => {
         padding: 16px;
       }
       .header-row {
-        align-items: flex-start;
+        align-items: stretch;
       }
       .header-actions,
       .controls,
       .modal-actions {
         flex-direction: column;
-        align-items: flex-start;
+      }
+      .header-actions > *,
+      .controls > *,
+      .modal-actions > * {
+        width: 100%;
       }
       .action-link,
       button {
-        width: auto;
-<<<<<<< HEAD
-        padding: 4px 12px;
-        border-radius: 8px;
-=======
->>>>>>> 29e7fa9491f37d26a06e9d52c4ce4565ad7a2c8e
+        text-align: center;
       }
       .summary {
         grid-template-columns: 1fr;
@@ -1158,16 +1156,15 @@ app.get('/add-business-expense', (req, res) => {
         padding: 16px;
       }
       .header-row {
-        align-items: flex-start;
+        align-items: stretch;
       }
       .action-link,
       button {
-        width: auto;
-<<<<<<< HEAD
-        padding: 4px 12px;
-        border-radius: 8px;
-=======
->>>>>>> 29e7fa9491f37d26a06e9d52c4ce4565ad7a2c8e
+        width: 100%;
+        text-align: center;
+      }
+      button {
+        justify-self: stretch;
       }
     }
   </style>
@@ -2055,17 +2052,13 @@ app.get('/', (req, res) => {
       .controls,
       .modal-actions {
         flex-direction: column;
-        align-items: flex-start;
       }
       .drawer-toggle,
       .action-link,
       button {
-        width: auto;
-<<<<<<< HEAD
-        padding: 4px 12px;
-        border-radius: 8px;
-=======
->>>>>>> 29e7fa9491f37d26a06e9d52c4ce4565ad7a2c8e
+        width: 100%;
+        justify-content: center;
+        text-align: center;
       }
       .summary {
         grid-template-columns: 1fr;
