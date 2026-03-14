@@ -340,15 +340,11 @@ app.get('/place-order', (req, res) => {
         padding: 16px;
       }
       .header-row {
-        align-items: stretch;
+        align-items: flex-start;
       }
       .action-link,
       button {
-        width: 100%;
-        text-align: center;
-      }
-      button {
-        justify-self: stretch;
+        width: auto;
       }
     }
   </style>
@@ -736,21 +732,17 @@ app.get('/business-expenses', (req, res) => {
         padding: 16px;
       }
       .header-row {
-        align-items: stretch;
+        align-items: flex-start;
       }
       .header-actions,
       .controls,
       .modal-actions {
         flex-direction: column;
-      }
-      .header-actions > *,
-      .controls > *,
-      .modal-actions > * {
-        width: 100%;
+        align-items: flex-start;
       }
       .action-link,
       button {
-        text-align: center;
+        width: auto;
       }
       .summary {
         grid-template-columns: 1fr;
@@ -1156,15 +1148,11 @@ app.get('/add-business-expense', (req, res) => {
         padding: 16px;
       }
       .header-row {
-        align-items: stretch;
+        align-items: flex-start;
       }
       .action-link,
       button {
-        width: 100%;
-        text-align: center;
-      }
-      button {
-        justify-self: stretch;
+        width: auto;
       }
     }
   </style>
@@ -2052,13 +2040,12 @@ app.get('/', (req, res) => {
       .controls,
       .modal-actions {
         flex-direction: column;
+        align-items: flex-start;
       }
       .drawer-toggle,
       .action-link,
       button {
-        width: 100%;
-        justify-content: center;
-        text-align: center;
+        width: auto;
       }
       .summary {
         grid-template-columns: 1fr;
