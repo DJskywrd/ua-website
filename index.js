@@ -20,6 +20,53 @@ const ensureJsonFile = (filePath, defaultValue) => {
   fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 4) + '\n', 'utf-8');
 };
 
+const readJsonArray = (filePath) => {
+  const raw = fs.readFileSync(filePath, 'utf-8');
+  const parsed = JSON.parse(raw);
+  return Array.isArray(parsed) ? parsed : [];
+};
+
+const writeJsonFile = (filePath, value) => {
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 4) + '\n', 'utf-8');
+};
+
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const capitalizeLabel = (label) =>
+  String(label)
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+const getStatusTone = (status) => {
+  const normalized = String(status ?? '').toLowerCase();
+  if (normalized === 'delivered') {
+    return 'green';
+  }
+  if (normalized === 'recieved' || normalized === 'printed') {
+    return 'yellow';
+  }
+  return 'neutral';
+};
+
+const getPaidTone = (paid) => (paid ? 'green' : 'red');
+
+const getOrderNotesValue = (notes) => {
+  const value = String(notes ?? '').trim();
+  return value || 'No additional notes';
+};
+
+const normalizeNotesForSave = (notes) => {
+  const value = String(notes ?? '').trim();
+  return value === 'No additional notes' ? '' : value;
+};
+
 ensureJsonFile(ordersPath, []);
 ensureJsonFile(itemsPath, []);
 ensureJsonFile(expensesPath, []);
@@ -36,12 +83,8 @@ app.post('/save-orders', (req, res) => {
   let orders = [];
   let items = [];
   try {
-    const ordersRaw = fs.readFileSync(ordersPath, 'utf-8');
-    const itemsRaw = fs.readFileSync(itemsPath, 'utf-8');
-    const parsedOrders = JSON.parse(ordersRaw);
-    const parsedItems = JSON.parse(itemsRaw);
-    orders = Array.isArray(parsedOrders) ? parsedOrders : [];
-    items = Array.isArray(parsedItems) ? parsedItems : [];
+    orders = readJsonArray(ordersPath);
+    items = readJsonArray(itemsPath);
   } catch (err) {
     res.status(500).json({ error: 'Unable to load orders.json or items.json' });
     return;
@@ -79,11 +122,15 @@ app.post('/save-orders', (req, res) => {
       if (!Number.isNaN(materialPrice)) {
         orders[orderIndex].material_cost = materialPrice;
       }
+
+      if (update.notes !== undefined) {
+        orders[orderIndex].notes = normalizeNotesForSave(update.notes);
+      }
     }
   });
 
   try {
-    fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 4) + '\n', 'utf-8');
+    writeJsonFile(ordersPath, orders);
   } catch (err) {
     res.status(500).json({ error: 'Unable to save orders.json' });
     return;
@@ -102,9 +149,7 @@ app.post('/admin/delete-order', (req, res) => {
 
   let orders = [];
   try {
-    const ordersRaw = fs.readFileSync(ordersPath, 'utf-8');
-    const parsedOrders = JSON.parse(ordersRaw);
-    orders = Array.isArray(parsedOrders) ? parsedOrders : [];
+    orders = readJsonArray(ordersPath);
   } catch (err) {
     res.status(500).json({ error: 'Unable to load orders.json' });
     return;
@@ -119,7 +164,7 @@ app.post('/admin/delete-order', (req, res) => {
   orders.splice(orderIndex, 1);
 
   try {
-    fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 4) + '\n', 'utf-8');
+    writeJsonFile(ordersPath, orders);
   } catch (err) {
     res.status(500).json({ error: 'Unable to save orders.json' });
     return;
@@ -140,9 +185,7 @@ app.post('/admin/create-item', (req, res) => {
 
   let items = [];
   try {
-    const itemsRaw = fs.readFileSync(itemsPath, 'utf-8');
-    const parsedItems = JSON.parse(itemsRaw);
-    items = Array.isArray(parsedItems) ? parsedItems : [];
+    items = readJsonArray(itemsPath);
   } catch (err) {
     res.status(500).json({ error: 'Unable to load items.json' });
     return;
@@ -155,7 +198,7 @@ app.post('/admin/create-item', (req, res) => {
   });
 
   try {
-    fs.writeFileSync(itemsPath, JSON.stringify(items, null, 4) + '\n', 'utf-8');
+    writeJsonFile(itemsPath, items);
   } catch (err) {
     res.status(500).json({ error: 'Unable to save items.json' });
     return;
@@ -1251,9 +1294,7 @@ app.post('/place-order', (req, res) => {
 
   let orders = [];
   try {
-    const ordersRaw = fs.readFileSync(ordersPath, 'utf-8');
-    const parsedOrders = JSON.parse(ordersRaw);
-    orders = Array.isArray(parsedOrders) ? parsedOrders : [];
+    orders = readJsonArray(ordersPath);
   } catch (err) {
     res.status(500).send('Unable to load orders.json');
     return;
@@ -1266,11 +1307,12 @@ app.post('/place-order', (req, res) => {
     material_cost: materialCost,
     quantity,
     status: 'Recieved',
-    paid: false
+    paid: false,
+    notes: ''
   });
 
   try {
-    fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 4) + '\n', 'utf-8');
+    writeJsonFile(ordersPath, orders);
   } catch (err) {
     res.status(500).send('Unable to save orders.json');
     return;
@@ -1286,11 +1328,13 @@ app.get('/api/orders/create', (req, res) => {
   const hasMaterialCost = req.query.material_cost !== undefined && req.query.material_cost !== '';
   const hasStatus = req.query.status !== undefined && String(req.query.status).trim() !== '';
   const hasPaid = req.query.paid !== undefined && String(req.query.paid).trim() !== '';
+  const hasNotes = req.query.notes !== undefined;
   const priceFromQuery = Number(req.query.price);
   const materialCostFromQuery = Number(req.query.material_cost);
   const quantity = Number(req.query.quantity);
   const status = hasStatus ? String(req.query.status).trim() : 'Recieved';
   const paid = hasPaid ? String(req.query.paid).toLowerCase() === 'true' : false;
+  const notes = hasNotes ? normalizeNotesForSave(req.query.notes) : '';
 
   if (
     !customer ||
@@ -1308,12 +1352,8 @@ app.get('/api/orders/create', (req, res) => {
   let orders = [];
   let items = [];
   try {
-    const ordersRaw = fs.readFileSync(ordersPath, 'utf-8');
-    const itemsRaw = fs.readFileSync(itemsPath, 'utf-8');
-    const parsedOrders = JSON.parse(ordersRaw);
-    const parsedItems = JSON.parse(itemsRaw);
-    orders = Array.isArray(parsedOrders) ? parsedOrders : [];
-    items = Array.isArray(parsedItems) ? parsedItems : [];
+    orders = readJsonArray(ordersPath);
+    items = readJsonArray(itemsPath);
   } catch (err) {
     res.status(500).json({ error: 'Unable to load data files' });
     return;
@@ -1337,12 +1377,13 @@ app.get('/api/orders/create', (req, res) => {
     material_cost: materialCost,
     quantity,
     status,
-    paid
+    paid,
+    notes
   };
   orders.push(newOrder);
 
   try {
-    fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 4) + '\n', 'utf-8');
+    writeJsonFile(ordersPath, orders);
   } catch (err) {
     res.status(500).json({ error: 'Unable to save orders.json' });
     return;
@@ -1359,12 +1400,8 @@ app.get('/api/orders', (req, res) => {
   let orders = [];
   let items = [];
   try {
-    const ordersRaw = fs.readFileSync(ordersPath, 'utf-8');
-    const itemsRaw = fs.readFileSync(itemsPath, 'utf-8');
-    const parsedOrders = JSON.parse(ordersRaw);
-    const parsedItems = JSON.parse(itemsRaw);
-    orders = Array.isArray(parsedOrders) ? parsedOrders : [];
-    items = Array.isArray(parsedItems) ? parsedItems : [];
+    orders = readJsonArray(ordersPath);
+    items = readJsonArray(itemsPath);
   } catch (err) {
     res.status(500).json({ error: 'Unable to load data files' });
     return;
@@ -1372,7 +1409,7 @@ app.get('/api/orders', (req, res) => {
 
   res.json({
     success: true,
-    orders: orders.map((order, index) => ({ id: index + 1, ...order })),
+    orders: orders.map((order, index) => ({ id: index + 1, notes: '', ...order })),
     items
   });
 });
@@ -1387,9 +1424,7 @@ app.get('/api/orders/mark-delivered', (req, res) => {
 
   let orders = [];
   try {
-    const ordersRaw = fs.readFileSync(ordersPath, 'utf-8');
-    const parsedOrders = JSON.parse(ordersRaw);
-    orders = Array.isArray(parsedOrders) ? parsedOrders : [];
+    orders = readJsonArray(ordersPath);
   } catch (err) {
     res.status(500).json({ error: 'Unable to load orders.json' });
     return;
@@ -1404,7 +1439,7 @@ app.get('/api/orders/mark-delivered', (req, res) => {
   orders[orderIndex].status = 'Delivered';
 
   try {
-    fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 4) + '\n', 'utf-8');
+    writeJsonFile(ordersPath, orders);
   } catch (err) {
     res.status(500).json({ error: 'Unable to save orders.json' });
     return;
@@ -1427,9 +1462,7 @@ app.get('/api/orders/mark-paid', (req, res) => {
 
   let orders = [];
   try {
-    const ordersRaw = fs.readFileSync(ordersPath, 'utf-8');
-    const parsedOrders = JSON.parse(ordersRaw);
-    orders = Array.isArray(parsedOrders) ? parsedOrders : [];
+    orders = readJsonArray(ordersPath);
   } catch (err) {
     res.status(500).json({ error: 'Unable to load orders.json' });
     return;
@@ -1444,7 +1477,7 @@ app.get('/api/orders/mark-paid', (req, res) => {
   orders[orderIndex].paid = true;
 
   try {
-    fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 4) + '\n', 'utf-8');
+    writeJsonFile(ordersPath, orders);
   } catch (err) {
     res.status(500).json({ error: 'Unable to save orders.json' });
     return;
@@ -1457,48 +1490,384 @@ app.get('/api/orders/mark-paid', (req, res) => {
   });
 });
 
-app.get('/', (req, res) => {
+app.get('/orders/:orderId', (req, res) => {
+  const orderId = Number(req.params.orderId);
+
+  if (!Number.isInteger(orderId) || orderId < 1) {
+    res.status(400).send('Invalid order ID');
+    return;
+  }
+
   let orders = [];
   let items = [];
   try {
-    const ordersRaw = fs.readFileSync(ordersPath, 'utf-8');
-    const itemsRaw = fs.readFileSync(itemsPath, 'utf-8');
-    const parsedOrders = JSON.parse(ordersRaw);
-    const parsedItems = JSON.parse(itemsRaw);
-    orders = Array.isArray(parsedOrders) ? parsedOrders : [];
-    items = Array.isArray(parsedItems) ? parsedItems : [];
+    orders = readJsonArray(ordersPath);
+    items = readJsonArray(itemsPath);
   } catch (err) {
     res.status(500).send('Unable to load orders.json or items.json');
     return;
   }
 
-  const categories = orders.length > 0 ? Object.keys(orders[0]) : [];
+  const order = orders[orderId - 1];
+  if (!order) {
+    res.status(404).send('Order not found');
+    return;
+  }
 
-  const escapeHtml = (value) =>
-    String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
-  const capitalizeLabel = (label) =>
-    String(label)
-      .split('_')
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
-
-  const getStatusTone = (status) => {
-    const normalized = String(status ?? '').toLowerCase();
-    if (normalized === 'delivered') {
-      return 'green';
+  const itemOptions = items
+    .map((item, index) => {
+      const itemNumber = index + 1;
+      const selected = itemNumber === Number(order.item) ? ' selected' : '';
+      return `<option value="${itemNumber}"${selected}>#${itemNumber} - ${escapeHtml(item.name ?? `Item ${itemNumber}`)}</option>`;
+    })
+    .join('');
+  const noteValue = getOrderNotesValue(order.notes);
+  const currentItem = items[Number(order.item) - 1] || null;
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order #${orderId}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 36%),
+        linear-gradient(180deg, #020617 0%, #0f172a 46%, #111827 100%);
+      color: #e2e8f0;
     }
-    if (normalized === 'recieved' || normalized === 'printed') {
-      return 'yellow';
+    a { color: inherit; }
+    .page-shell {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
     }
-    return 'neutral';
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .title-block h1 {
+      margin: 0 0 6px;
+      font-size: clamp(2rem, 4vw, 3rem);
+    }
+    .title-block p {
+      margin: 0;
+      color: #93c5fd;
+    }
+    .action-link, button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border: 1px solid #3b82f6;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(37, 99, 235, 0.35), rgba(29, 78, 216, 0.7));
+      color: #eff6ff;
+      text-decoration: none;
+      font-size: 0.98rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover, .action-link:hover { filter: brightness(1.06); }
+    .panel {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid #1e3a8a;
+      border-radius: 18px;
+      box-shadow: 0 24px 70px rgba(2, 6, 23, 0.42);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 22px 24px 18px;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .order-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      background: rgba(30, 41, 59, 0.92);
+    }
+    .status-green { color: #dcfce7; background: rgba(22, 101, 52, 0.32); border-color: #166534; }
+    .status-yellow { color: #fef3c7; background: rgba(146, 64, 14, 0.3); border-color: #92400e; }
+    .status-red { color: #fee2e2; background: rgba(185, 28, 28, 0.28); border-color: #b91c1c; }
+    .status-neutral { color: #e5e7eb; background: rgba(55, 65, 81, 0.28); border-color: #374151; }
+    form { padding: 24px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .field,
+    .notes-field,
+    .summary-card {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .field label,
+    .notes-field label {
+      display: block;
+      margin-bottom: 10px;
+      color: #93c5fd;
+      font-weight: 700;
+    }
+    .field input,
+    .field select,
+    .notes-field textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.95);
+      color: #e2e8f0;
+      font-size: 1rem;
+    }
+    .notes-field {
+      margin-top: 18px;
+    }
+    .notes-field textarea {
+      min-height: 180px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .summary-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .summary-card span {
+      display: block;
+      margin-bottom: 8px;
+      color: #93c5fd;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+    .summary-card strong {
+      font-size: 1.35rem;
+    }
+    .form-actions {
+      margin-top: 24px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .helper-text {
+      margin-top: 10px;
+      color: #94a3b8;
+      font-size: 0.92rem;
+    }
+    @media (max-width: 720px) {
+      .page-shell { width: min(100% - 20px, 960px); padding-top: 20px; }
+      .topbar, .panel-header, .form-actions { flex-direction: column; align-items: stretch; }
+      .grid, .summary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="topbar">
+      <div class="title-block">
+        <h1>Order #${orderId}</h1>
+        <p>${escapeHtml(currentItem?.name ?? 'Unknown Item')} for ${escapeHtml(order.customer ?? 'Unknown Customer')}</p>
+      </div>
+      <a class="action-link" href="/">Back To Orders</a>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="order-chip status-${getStatusTone(order.status)}">${escapeHtml(order.status ?? 'Unknown Status')}</div>
+        <div class="order-chip status-${getPaidTone(Boolean(order.paid))}">${order.paid ? 'Paid' : 'Not Paid'}</div>
+      </div>
+
+      <form method="post" action="/orders/${orderId}">
+        <div class="grid">
+          <div class="field">
+            <label for="customer">Customer</label>
+            <input id="customer" name="customer" type="text" value="${escapeHtml(order.customer ?? '')}" required />
+          </div>
+          <div class="field">
+            <label for="item">Item</label>
+            <select id="item" name="item" required>${itemOptions}</select>
+          </div>
+          <div class="field">
+            <label for="quantity">Quantity</label>
+            <input id="quantity" name="quantity" type="number" min="1" step="1" value="${escapeHtml(order.quantity ?? '')}" required />
+          </div>
+          <div class="field">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+              <option value="Recieved"${String(order.status ?? '').toLowerCase() === 'recieved' ? ' selected' : ''}>Recieved</option>
+              <option value="Printed"${String(order.status ?? '').toLowerCase() === 'printed' ? ' selected' : ''}>Printed</option>
+              <option value="Delivered"${String(order.status ?? '').toLowerCase() === 'delivered' ? ' selected' : ''}>Delivered</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="price">Price</label>
+            <input id="price" name="price" type="number" min="0" step="0.01" value="${escapeHtml(order.price ?? '')}" required />
+          </div>
+          <div class="field">
+            <label for="material_cost">Material Cost</label>
+            <input id="material_cost" name="material_cost" type="number" min="0" step="0.01" value="${escapeHtml(order.material_cost ?? '')}" required />
+          </div>
+          <div class="field">
+            <label for="paid">Payment</label>
+            <select id="paid" name="paid">
+              <option value="false"${order.paid ? '' : ' selected'}>Not Paid</option>
+              <option value="true"${order.paid ? ' selected' : ''}>Paid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="notes-field">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" data-empty-notes="${String(order.notes ?? '').trim() ? 'false' : 'true'}">${escapeHtml(noteValue)}</textarea>
+          <p class="helper-text">You can update any order detail here, and notes save directly into <code>orders.json</code>.</p>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span>Item Price</span>
+            <strong>$${Number(order.price ?? 0).toFixed(2)}</strong>
+          </div>
+          <div class="summary-card">
+            <span>Material Cost</span>
+            <strong>$${Number(order.material_cost ?? 0).toFixed(2)}</strong>
+          </div>
+          <div class="summary-card">
+            <span>Total Revenue</span>
+            <strong>$${((Number(order.price) || 0) * (Number(order.quantity) || 0)).toFixed(2)}</strong>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit">Save Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    const notesField = document.getElementById('notes');
+    const emptyNotesText = 'No additional notes';
+
+    if (notesField.dataset.emptyNotes === 'true') {
+      notesField.addEventListener('focus', () => {
+        if (notesField.value.trim() === emptyNotesText) {
+          notesField.value = '';
+        }
+      });
+
+      notesField.addEventListener('blur', () => {
+        if (!notesField.value.trim()) {
+          notesField.value = emptyNotesText;
+        }
+      });
+    }
+  </script>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
+app.post('/orders/:orderId', (req, res) => {
+  const orderId = Number(req.params.orderId);
+  const customer = String(req.body.customer ?? '').trim();
+  const item = Number(req.body.item);
+  const price = Number(req.body.price);
+  const materialCost = Number(req.body.material_cost);
+  const quantity = Number(req.body.quantity);
+  const status = String(req.body.status ?? '').trim();
+  const paid = String(req.body.paid ?? '').toLowerCase() === 'true';
+  const notes = normalizeNotesForSave(req.body.notes);
+
+  if (
+    !Number.isInteger(orderId) ||
+    orderId < 1 ||
+    !customer ||
+    !Number.isInteger(item) ||
+    item < 1 ||
+    !Number.isFinite(price) ||
+    price < 0 ||
+    !Number.isFinite(materialCost) ||
+    materialCost < 0 ||
+    !Number.isInteger(quantity) ||
+    quantity < 1 ||
+    !['recieved', 'printed', 'delivered'].includes(status.toLowerCase())
+  ) {
+    res.status(400).send('Invalid order data');
+    return;
+  }
+
+  let orders = [];
+  let items = [];
+  try {
+    orders = readJsonArray(ordersPath);
+    items = readJsonArray(itemsPath);
+  } catch (err) {
+    res.status(500).send('Unable to load orders.json or items.json');
+    return;
+  }
+
+  const orderIndex = orderId - 1;
+  if (!orders[orderIndex]) {
+    res.status(404).send('Order not found');
+    return;
+  }
+  if (item > items.length) {
+    res.status(400).send('Item does not exist');
+    return;
+  }
+
+  orders[orderIndex] = {
+    ...orders[orderIndex],
+    customer,
+    item,
+    price,
+    material_cost: materialCost,
+    quantity,
+    status,
+    paid,
+    notes
   };
-  const getPaidTone = (paid) => (paid ? 'green' : 'red');
+
+  try {
+    writeJsonFile(ordersPath, orders);
+  } catch (err) {
+    res.status(500).send('Unable to save orders.json');
+    return;
+  }
+
+  res.redirect(`/orders/${orderId}`);
+});
+
+app.get('/', (req, res) => {
+  let orders = [];
+  let items = [];
+  try {
+    orders = readJsonArray(ordersPath);
+    items = readJsonArray(itemsPath);
+  } catch (err) {
+    res.status(500).send('Unable to load orders.json or items.json');
+    return;
+  }
+
+  const categories = orders.length > 0 ? Object.keys(orders[0]).filter((category) => category !== 'notes') : [];
 
   const headerCells = ['ID', ...categories]
     .map((category) => `<th>${escapeHtml(capitalizeLabel(category))}</th>`)
@@ -1639,7 +2008,7 @@ app.get('/', (req, res) => {
         ].join('');
       }).join('');
 
-      return `<tr data-order-index="${index}" data-quantity="${escapeHtml(order.quantity ?? 0)}"><td data-label="ID">${index + 1}</td>${dataCells}</tr>`;
+      return `<tr data-order-index="${index}" data-order-id="${index + 1}" data-quantity="${escapeHtml(order.quantity ?? 0)}" tabindex="0"><td data-label="ID">${index + 1}</td>${dataCells}</tr>`;
     })
     .join('');
 
@@ -1801,6 +2170,18 @@ app.get('/', (req, res) => {
     }
     tbody tr:last-child td {
       border-bottom: none;
+    }
+    tbody tr[data-order-id] {
+      cursor: pointer;
+      transition: background-color 0.18s ease, transform 0.18s ease;
+    }
+    tbody tr[data-order-id]:hover,
+    tbody tr[data-order-id]:focus-visible {
+      background: rgba(30, 64, 175, 0.14);
+      outline: none;
+    }
+    body.editing tbody tr[data-order-id] {
+      cursor: default;
     }
     .controls {
       margin-top: 14px;
@@ -2458,7 +2839,7 @@ app.get('/', (req, res) => {
         return '<td data-label="' + escapeHtmlClient(cellLabelByCategory[category] || category) + '">' + escapeHtmlClient(order[category]) + '</td>';
       }).join('');
 
-      return '<tr data-order-index="' + index + '" data-quantity="' + escapeHtmlClient(order.quantity ?? 0) + '"><td data-label="ID">' + (index + 1) + '</td>' + cells + '</tr>';
+      return '<tr data-order-index="' + index + '" data-order-id="' + (index + 1) + '" data-quantity="' + escapeHtmlClient(order.quantity ?? 0) + '" tabindex="0"><td data-label="ID">' + (index + 1) + '</td>' + cells + '</tr>';
     };
 
     const updateAdminItemOptions = (items) => {
@@ -2534,6 +2915,17 @@ app.get('/', (req, res) => {
       adminToggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     };
 
+    const navigateToOrderDetail = (row) => {
+      if (document.body.classList.contains('editing')) {
+        return;
+      }
+      const orderId = Number(row.dataset.orderId);
+      if (!Number.isInteger(orderId) || orderId < 1) {
+        return;
+      }
+      window.location.href = '/orders/' + orderId;
+    };
+
     const setDeleteAllOrdersModalOpen = (isOpen) => {
       deleteAllOrdersModal.classList.toggle('open', isOpen);
       deleteAllOrdersModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
@@ -2570,6 +2962,31 @@ app.get('/', (req, res) => {
         setAdminDrawerOpen(false);
         setDeleteAllOrdersModalOpen(false);
       }
+    });
+
+    ordersTableBody.addEventListener('click', (event) => {
+      if (document.body.classList.contains('editing')) {
+        return;
+      }
+      if (event.target.closest('input, select, button, a, textarea, label')) {
+        return;
+      }
+      const row = event.target.closest('tr[data-order-id]');
+      if (row) {
+        navigateToOrderDetail(row);
+      }
+    });
+
+    ordersTableBody.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      const row = event.target.closest('tr[data-order-id]');
+      if (!row) {
+        return;
+      }
+      event.preventDefault();
+      navigateToOrderDetail(row);
     });
 
     editOrdersBtn.addEventListener('click', () => {
