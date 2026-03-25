@@ -1856,6 +1856,352 @@ app.post('/orders/:orderId', (req, res) => {
   res.redirect(`/orders/${orderId}`);
 });
 
+app.get('/inventory-scanner', (req, res) => {
+  const html = `
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory Scanner</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: #e5e7eb;
+      background:
+        radial-gradient(circle at top, rgba(37, 99, 235, 0.26) 0%, rgba(11, 18, 32, 0) 36%),
+        linear-gradient(180deg, #08111f 0%, #111827 100%);
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+    .page {
+      width: 100%;
+      max-width: 760px;
+      display: grid;
+      gap: 16px;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      color: #dbeafe;
+    }
+    .action-link,
+    button {
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .action-link:hover,
+    button:hover {
+      background: #2563eb;
+    }
+    button.secondary-btn {
+      background: #1f2937;
+      border-color: #334155;
+    }
+    button.secondary-btn:hover {
+      background: #334155;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #1e3a8a;
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(2, 6, 23, 0.42);
+      padding: 16px;
+    }
+    .scanner-shell {
+      display: grid;
+      gap: 14px;
+    }
+    .video-frame {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #020617;
+      border: 1px solid #1f2937;
+      aspect-ratio: 3 / 4;
+      min-height: 340px;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #020617;
+    }
+    .scan-window {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(72vw, 320px);
+      height: min(28vw, 140px);
+      max-width: calc(100% - 40px);
+      max-height: calc(100% - 120px);
+      transform: translate(-50%, -50%);
+      border: 2px solid rgba(191, 219, 254, 0.95);
+      border-radius: 18px;
+      box-shadow: 0 0 0 999px rgba(2, 6, 23, 0.34);
+    }
+    .scan-window::before,
+    .scan-window::after {
+      content: "";
+      position: absolute;
+      inset: auto auto -2px -2px;
+      width: 34px;
+      height: 34px;
+      border-left: 4px solid #60a5fa;
+      border-bottom: 4px solid #60a5fa;
+      border-radius: 0 0 0 14px;
+    }
+    .scan-window::after {
+      inset: -2px -2px auto auto;
+      border-left: none;
+      border-bottom: none;
+      border-top: 4px solid #60a5fa;
+      border-right: 4px solid #60a5fa;
+      border-radius: 0 14px 0 0;
+    }
+    .status-line {
+      margin: 0;
+      color: #bfdbfe;
+      line-height: 1.5;
+    }
+    .status-line.error {
+      color: #fca5a5;
+    }
+    .result-card {
+      border: 1px solid #1f2937;
+      background: #0b1220;
+      border-radius: 14px;
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+    }
+    .result-label {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .barcode-value {
+      margin: 0;
+      font-size: clamp(24px, 7vw, 42px);
+      line-height: 1.1;
+      font-weight: 800;
+      color: #ffffff;
+      word-break: break-word;
+    }
+    .result-meta {
+      margin: 0;
+      color: #93c5fd;
+      font-size: 14px;
+    }
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .camera-note {
+      margin: 0;
+      color: #93c5fd;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+      .header-row,
+      .button-row {
+        flex-direction: column;
+      }
+      .header-row > *,
+      .button-row > * {
+        width: 100%;
+      }
+      .video-frame {
+        min-height: 420px;
+      }
+      .scan-window {
+        width: calc(100% - 36px);
+        height: 124px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header-row">
+      <h1>Inventory Scanner</h1>
+      <a class="action-link" href="/">Back To Orders</a>
+    </div>
+
+    <section class="card scanner-shell">
+      <div class="video-frame">
+        <video id="scannerPreview" autoplay muted playsinline></video>
+        <div class="scan-window" aria-hidden="true"></div>
+      </div>
+
+      <p id="scannerStatus" class="status-line">Ready to use the camera.</p>
+
+      <div class="button-row">
+        <button id="startScanBtn" type="button">Start Camera</button>
+        <button id="rescanBtn" class="secondary-btn" type="button" disabled>Scan Again</button>
+      </div>
+
+      <div class="result-card">
+        <p class="result-label">Detected Barcode</p>
+        <p id="barcodeValue" class="barcode-value">Waiting for scan</p>
+        <p id="barcodeFormat" class="result-meta">No barcode detected yet.</p>
+      </div>
+
+      <p class="camera-note">Use your phone browser, allow camera access, and point the rear camera at a barcode. This page works best over HTTPS or on localhost.</p>
+    </section>
+  </div>
+
+  <script type="module">
+    import { BrowserMultiFormatReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm';
+
+    const scannerPreview = document.getElementById('scannerPreview');
+    const scannerStatus = document.getElementById('scannerStatus');
+    const barcodeValue = document.getElementById('barcodeValue');
+    const barcodeFormat = document.getElementById('barcodeFormat');
+    const startScanBtn = document.getElementById('startScanBtn');
+    const rescanBtn = document.getElementById('rescanBtn');
+
+    const codeReader = new BrowserMultiFormatReader();
+    let controls = null;
+    let hasDetectedCode = false;
+
+    const setStatus = (message, isError = false) => {
+      scannerStatus.textContent = message;
+      scannerStatus.classList.toggle('error', isError);
+    };
+
+    const hasCameraSupport = () =>
+      typeof navigator !== 'undefined' &&
+      !!navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function';
+
+    const showCameraSupportError = () => {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const message = !window.isSecureContext && !isLocalhost
+        ? 'Camera access is blocked because this page is not running on HTTPS.'
+        : 'This browser does not expose the camera API needed for barcode scanning.';
+      setStatus(message, true);
+      barcodeValue.textContent = 'Camera unavailable';
+      barcodeFormat.textContent = !window.isSecureContext && !isLocalhost
+        ? 'Open this page over HTTPS on your phone.'
+        : 'Try Safari, Chrome, or another current mobile browser.';
+      startScanBtn.disabled = true;
+      rescanBtn.disabled = true;
+    };
+
+    const stopScanning = async () => {
+      if (controls) {
+        await controls.stop();
+        controls = null;
+      }
+      scannerPreview.srcObject = null;
+      startScanBtn.disabled = false;
+    };
+
+    const showDetectedCode = async (result) => {
+      hasDetectedCode = true;
+      barcodeValue.textContent = result.text || 'No barcode text';
+      barcodeFormat.textContent = 'Format: ' + String(result.format || 'Unknown');
+      rescanBtn.disabled = false;
+      setStatus('Barcode detected. Camera stopped.');
+      await stopScanning();
+    };
+
+    const startScanning = async () => {
+      startScanBtn.disabled = true;
+      rescanBtn.disabled = true;
+      hasDetectedCode = false;
+      barcodeValue.textContent = 'Waiting for scan';
+      barcodeFormat.textContent = 'Looking for a supported barcode format.';
+      setStatus('Starting camera...');
+
+      if (!hasCameraSupport()) {
+        showCameraSupportError();
+        return;
+      }
+
+      try {
+        controls = await codeReader.decodeFromConstraints(
+          {
+            audio: false,
+            video: {
+              facingMode: { ideal: 'environment' }
+            }
+          },
+          scannerPreview,
+          async (result, error) => {
+            if (result && !hasDetectedCode) {
+              await showDetectedCode(result);
+              return;
+            }
+
+            if (error && error.name !== 'NotFoundException' && !hasDetectedCode) {
+              setStatus('Camera is running, but the barcode could not be read yet.');
+            }
+          }
+        );
+        setStatus('Camera live. Hold the barcode inside the frame.');
+      } catch (error) {
+        startScanBtn.disabled = false;
+        rescanBtn.disabled = false;
+        const message = error && error.message ? error.message : 'Unable to start camera.';
+        setStatus(message, true);
+        barcodeFormat.textContent = 'Camera access failed.';
+      }
+    };
+
+    startScanBtn.addEventListener('click', () => {
+      startScanning();
+    });
+
+    rescanBtn.addEventListener('click', async () => {
+      await stopScanning();
+      startScanning();
+    });
+
+    window.addEventListener('beforeunload', () => {
+      stopScanning();
+    });
+
+    if (!hasCameraSupport()) {
+      showCameraSupportError();
+    }
+  </script>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
 app.get('/', (req, res) => {
   let orders = [];
   let items = [];
@@ -2547,6 +2893,7 @@ app.get('/', (req, res) => {
             <h1>Orders</h1>
           </div>
           <div class="header-actions">
+            <a class="action-link" href="/inventory-scanner">Inventory Scanner</a>
             <a class="action-link" href="/business-expenses">Business Expenses</a>
             <a class="action-link" href="/place-order">Place Order</a>
           </div>
