@@ -2201,6 +2201,32 @@ app.get('/inventory-scan', (req, res) => {
       gap: 10px;
       flex-wrap: wrap;
     }
+    .manual-entry {
+      border: 1px solid #1f2937;
+      background: #0f172a;
+      border-radius: 14px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .manual-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .manual-input {
+      flex: 1 1 260px;
+      min-width: 0;
+      border: 1px solid #1d4ed8;
+      background: #111827;
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #e5e7eb;
+      font: inherit;
+    }
+    .manual-input::placeholder {
+      color: #6b7280;
+    }
     .result-card {
       border: 1px solid #1f2937;
       background: #0f172a;
@@ -2235,12 +2261,14 @@ app.get('/inventory-scan', (req, res) => {
       }
       .header-row,
       .header-actions,
-      .button-row {
+      .button-row,
+      .manual-form {
         align-items: stretch;
         flex-direction: column;
       }
       .header-actions > *,
-      .button-row > * {
+      .button-row > *,
+      .manual-form > * {
         width: 100%;
       }
       .action-link,
@@ -2282,6 +2310,25 @@ app.get('/inventory-scan', (req, res) => {
         <button id="rescanBtn" type="button">Scan Again</button>
       </div>
 
+      <div class="manual-entry">
+        <p class="result-label">Manual Entry</p>
+        <p class="result-meta">You can type a barcode or use a physical scanner that inputs into this field and presses Enter.</p>
+        <form id="manualEntryForm" class="manual-form">
+          <input
+            id="manualBarcodeInput"
+            class="manual-input"
+            name="barcode"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="Enter or scan barcode"
+          />
+          <button id="manualSubmitBtn" type="submit">Submit Barcode</button>
+        </form>
+      </div>
+
       <div class="result-card">
         <p class="result-label">Detected Barcode</p>
         <p id="barcodeValue" class="barcode-value">Waiting for scan</p>
@@ -2300,6 +2347,9 @@ app.get('/inventory-scan', (req, res) => {
     const barcodeMeta = document.getElementById('barcodeMeta');
     const startScanBtn = document.getElementById('startScanBtn');
     const rescanBtn = document.getElementById('rescanBtn');
+    const manualEntryForm = document.getElementById('manualEntryForm');
+    const manualBarcodeInput = document.getElementById('manualBarcodeInput');
+    const manualSubmitBtn = document.getElementById('manualSubmitBtn');
 
     const codeReader = new BrowserMultiFormatReader();
     let controls = null;
@@ -2324,7 +2374,7 @@ app.get('/inventory-scan', (req, res) => {
       barcodeValue.textContent = 'Camera unavailable';
       barcodeMeta.textContent = !window.isSecureContext && !isLocalhost
         ? 'Open this page over HTTPS on your phone.'
-        : 'Try Safari, Chrome, or another current mobile browser.';
+        : 'Try Safari, Chrome, or another current mobile browser. Manual entry still works.';
       startScanBtn.disabled = true;
       rescanBtn.disabled = true;
     };
@@ -2341,19 +2391,26 @@ app.get('/inventory-scan', (req, res) => {
       if (isBusy) {
         return;
       }
+      const normalizedBarcode = String(barcodeText || '').trim();
+      if (!normalizedBarcode) {
+        setStatus('Enter or scan a barcode first.', true);
+        return;
+      }
       isBusy = true;
-      barcodeValue.textContent = barcodeText || 'Unknown barcode';
+      barcodeValue.textContent = normalizedBarcode;
       barcodeMeta.textContent = 'Format: ' + formatText;
       setStatus('Saving inventory update...');
       startScanBtn.disabled = true;
       rescanBtn.disabled = true;
+      manualSubmitBtn.disabled = true;
+      manualBarcodeInput.disabled = true;
       await stopScanning();
 
       try {
         const response = await fetch('/inventory/process-scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, barcode: barcodeText })
+          body: JSON.stringify({ action, barcode: normalizedBarcode })
         });
         const data = await response.json();
         if (!response.ok || !data.redirectUrl) {
@@ -2364,8 +2421,11 @@ app.get('/inventory-scan', (req, res) => {
         setStatus(error.message || 'Unable to process scan.', true);
         barcodeMeta.textContent = 'Scan failed. Try again.';
         isBusy = false;
-        startScanBtn.disabled = false;
-        rescanBtn.disabled = false;
+        startScanBtn.disabled = !hasCameraSupport();
+        rescanBtn.disabled = !hasCameraSupport();
+        manualSubmitBtn.disabled = false;
+        manualBarcodeInput.disabled = false;
+        manualBarcodeInput.focus();
       }
     };
 
@@ -2375,6 +2435,8 @@ app.get('/inventory-scan', (req, res) => {
       barcodeMeta.textContent = 'The scan result will appear here.';
       startScanBtn.disabled = true;
       rescanBtn.disabled = true;
+      manualSubmitBtn.disabled = false;
+      manualBarcodeInput.disabled = false;
       setStatus('Starting camera...');
 
       if (!hasCameraSupport()) {
@@ -2421,6 +2483,11 @@ app.get('/inventory-scan', (req, res) => {
       startScanning();
     });
 
+    manualEntryForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      await processBarcode(manualBarcodeInput.value, 'Manual Entry');
+    });
+
     window.addEventListener('beforeunload', () => {
       stopScanning();
     });
@@ -2430,6 +2497,10 @@ app.get('/inventory-scan', (req, res) => {
     } else {
       startScanning();
     }
+
+    window.setTimeout(() => {
+      manualBarcodeInput.focus();
+    }, 0);
   </script>
 </body>
 </html>`;
