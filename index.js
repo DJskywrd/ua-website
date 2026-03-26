@@ -11,6 +11,7 @@ app.use(express.urlencoded({ extended: true }));
 const ordersPath = path.join(__dirname, 'orders.json');
 const itemsPath = path.join(__dirname, 'items.json');
 const expensesPath = path.join(__dirname, 'expenses.json');
+const inventoryPath = path.join(__dirname, 'inventory.json');
 
 const ensureJsonFile = (filePath, defaultValue) => {
   if (fs.existsSync(filePath)) {
@@ -67,9 +68,36 @@ const normalizeNotesForSave = (notes) => {
   return value === 'No additional notes' ? '' : value;
 };
 
+<<<<<<< Updated upstream
+=======
+const normalizeBarcode = (value) => String(value ?? '').trim();
+
+const normalizeInventoryAmount = (value) => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) {
+    return 0;
+  }
+  return Math.floor(amount);
+};
+
+const sanitizeInventoryItem = (item) => ({
+  barcode: normalizeBarcode(item?.barcode),
+  name: String(item?.name ?? '').trim(),
+  amount: normalizeInventoryAmount(item?.amount)
+});
+
+const readInventoryItems = () => readJsonArray(inventoryPath).map(sanitizeInventoryItem);
+
+const writeInventoryItems = (items) => writeJsonFile(inventoryPath, items.map(sanitizeInventoryItem));
+
+const findInventoryItemIndex = (items, barcode) =>
+  items.findIndex((item) => normalizeBarcode(item.barcode) === normalizeBarcode(barcode));
+
+>>>>>>> Stashed changes
 ensureJsonFile(ordersPath, []);
 ensureJsonFile(itemsPath, []);
 ensureJsonFile(expensesPath, []);
+ensureJsonFile(inventoryPath, []);
 
 // Routes
 app.post('/save-orders', (req, res) => {
@@ -1927,12 +1955,208 @@ app.get('/inventory-scanner', (req, res) => {
       border: 1px solid #1e3a8a;
       border-radius: 18px;
       box-shadow: 0 18px 40px rgba(2, 6, 23, 0.42);
+<<<<<<< Updated upstream
+=======
+      padding: 20px;
+    }
+    .scanner-shell {
+      display: grid;
+      gap: 18px;
+    }
+    .section-label {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .section-title {
+      margin: 0;
+      font-size: clamp(28px, 7vw, 40px);
+      line-height: 1.05;
+      color: #ffffff;
+    }
+    .section-note {
+      margin: 0;
+      color: #93c5fd;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .button-grid {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .choice-btn {
+      flex: 1 1 220px;
+      min-height: 120px;
+      border-radius: 16px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      color: #ffffff;
+    }
+    .choice-btn.remove-btn {
+      background: #991b1b;
+      border-color: #dc2626;
+    }
+    .choice-btn.remove-btn:hover {
+      background: #b91c1c;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+      .header-row,
+      .button-grid {
+        flex-direction: column;
+      }
+      .header-row > *,
+      .button-grid > * {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header-row">
+      <h1>Inventory Scanner</h1>
+      <a class="action-link" href="/inventory">Back To Inventory</a>
+    </div>
+
+    <section class="card scanner-shell">
+      <div>
+        <p class="section-label">Choose Action</p>
+        <h2 class="section-title">Add or remove inventory</h2>
+        <p class="section-note">Pick the inventory action before opening the barcode scanner flow.</p>
+      </div>
+      <div class="button-grid">
+        <a class="choice-btn" href="/inventory-scan?action=add">Add</a>
+        <a class="choice-btn remove-btn" href="/inventory-scan?action=remove">Remove</a>
+      </div>
+    </section>
+  </div>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
+app.get('/inventory-scan', (req, res) => {
+  const action = String(req.query.action ?? '').toLowerCase();
+
+  if (!['add', 'remove'].includes(action)) {
+    res.status(400).send('Invalid inventory scanner action');
+    return;
+  }
+
+  const actionLabel = action === 'remove' ? 'Remove' : 'Add';
+  const actionDescription =
+    action === 'remove'
+      ? 'Scan a barcode to remove one item from inventory.'
+      : 'Scan a barcode to add one item to inventory.';
+
+  const html = `
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${actionLabel} Inventory</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 24px;
+      color: #e5e7eb;
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+      min-height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+    }
+    .page {
+      width: 100%;
+      max-width: 760px;
+    }
+    .header-row {
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      color: #bfdbfe;
+    }
+    .action-link,
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .action-link:hover,
+    button:hover {
+      background: #2563eb;
+    }
+    .card {
+      margin-top: 14px;
+      background: #0b1220;
+      border: 1px solid #1e3a8a;
+      border-radius: 12px;
+>>>>>>> Stashed changes
       padding: 16px;
     }
     .scanner-shell {
       display: grid;
       gap: 14px;
     }
+<<<<<<< Updated upstream
+=======
+    .section-label {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .section-title {
+      margin: 6px 0 0;
+      font-size: clamp(28px, 7vw, 40px);
+      line-height: 1.05;
+      color: #ffffff;
+    }
+    .page-note,
+    .status-line {
+      color: #93c5fd;
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .status-line.error {
+      color: #fca5a5;
+    }
+>>>>>>> Stashed changes
     .video-frame {
       position: relative;
       overflow: hidden;
@@ -1981,6 +2205,7 @@ app.get('/inventory-scanner', (req, res) => {
       border-right: 4px solid #60a5fa;
       border-radius: 0 14px 0 0;
     }
+<<<<<<< Updated upstream
     .status-line {
       margin: 0;
       color: #bfdbfe;
@@ -1992,6 +2217,16 @@ app.get('/inventory-scanner', (req, res) => {
     .result-card {
       border: 1px solid #1f2937;
       background: #0b1220;
+=======
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .result-card {
+      border: 1px solid #1f2937;
+      background: #0f172a;
+>>>>>>> Stashed changes
       border-radius: 14px;
       padding: 14px;
       display: grid;
@@ -2017,6 +2252,7 @@ app.get('/inventory-scanner', (req, res) => {
       color: #93c5fd;
       font-size: 14px;
     }
+<<<<<<< Updated upstream
     .button-row {
       display: flex;
       gap: 10px;
@@ -2040,6 +2276,26 @@ app.get('/inventory-scanner', (req, res) => {
       .button-row > * {
         width: 100%;
       }
+=======
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      .header-row,
+      .header-actions,
+      .button-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .header-actions > *,
+      .button-row > * {
+        width: 100%;
+      }
+      .action-link,
+      button {
+        text-align: center;
+      }
+>>>>>>> Stashed changes
       .video-frame {
         min-height: 420px;
       }
@@ -2053,8 +2309,18 @@ app.get('/inventory-scanner', (req, res) => {
 <body>
   <div class="page">
     <div class="header-row">
+<<<<<<< Updated upstream
       <h1>Inventory Scanner</h1>
       <a class="action-link" href="/">Back To Orders</a>
+=======
+      <div>
+        <h1>${actionLabel} Inventory</h1>
+        <p class="page-note">${escapeHtml(actionDescription)}</p>
+      </div>
+      <div class="header-actions">
+        <a class="action-link" href="/inventory">Back To Inventory</a>
+      </div>
+>>>>>>> Stashed changes
     </div>
 
     <section class="card scanner-shell">
@@ -2063,36 +2329,61 @@ app.get('/inventory-scanner', (req, res) => {
         <div class="scan-window" aria-hidden="true"></div>
       </div>
 
+<<<<<<< Updated upstream
       <p id="scannerStatus" class="status-line">Ready to use the camera.</p>
 
       <div class="button-row">
         <button id="startScanBtn" type="button">Start Camera</button>
         <button id="rescanBtn" class="secondary-btn" type="button" disabled>Scan Again</button>
+=======
+      <p id="scannerStatus" class="status-line">Starting camera...</p>
+
+      <div class="button-row">
+        <button id="startScanBtn" type="button">Start Camera</button>
+        <button id="rescanBtn" type="button">Scan Again</button>
+>>>>>>> Stashed changes
       </div>
 
       <div class="result-card">
         <p class="result-label">Detected Barcode</p>
         <p id="barcodeValue" class="barcode-value">Waiting for scan</p>
+<<<<<<< Updated upstream
         <p id="barcodeFormat" class="result-meta">No barcode detected yet.</p>
       </div>
 
       <p class="camera-note">Use your phone browser, allow camera access, and point the rear camera at a barcode. This page works best over HTTPS or on localhost.</p>
+=======
+        <p id="barcodeMeta" class="result-meta">The scan result will appear here.</p>
+      </div>
+>>>>>>> Stashed changes
     </section>
   </div>
 
   <script type="module">
     import { BrowserMultiFormatReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm';
 
+<<<<<<< Updated upstream
     const scannerPreview = document.getElementById('scannerPreview');
     const scannerStatus = document.getElementById('scannerStatus');
     const barcodeValue = document.getElementById('barcodeValue');
     const barcodeFormat = document.getElementById('barcodeFormat');
+=======
+    const action = ${JSON.stringify(action)};
+    const scannerPreview = document.getElementById('scannerPreview');
+    const scannerStatus = document.getElementById('scannerStatus');
+    const barcodeValue = document.getElementById('barcodeValue');
+    const barcodeMeta = document.getElementById('barcodeMeta');
+>>>>>>> Stashed changes
     const startScanBtn = document.getElementById('startScanBtn');
     const rescanBtn = document.getElementById('rescanBtn');
 
     const codeReader = new BrowserMultiFormatReader();
     let controls = null;
+<<<<<<< Updated upstream
     let hasDetectedCode = false;
+=======
+    let isBusy = false;
+>>>>>>> Stashed changes
 
     const setStatus = (message, isError = false) => {
       scannerStatus.textContent = message;
@@ -2111,7 +2402,11 @@ app.get('/inventory-scanner', (req, res) => {
         : 'This browser does not expose the camera API needed for barcode scanning.';
       setStatus(message, true);
       barcodeValue.textContent = 'Camera unavailable';
+<<<<<<< Updated upstream
       barcodeFormat.textContent = !window.isSecureContext && !isLocalhost
+=======
+      barcodeMeta.textContent = !window.isSecureContext && !isLocalhost
+>>>>>>> Stashed changes
         ? 'Open this page over HTTPS on your phone.'
         : 'Try Safari, Chrome, or another current mobile browser.';
       startScanBtn.disabled = true;
@@ -2124,6 +2419,7 @@ app.get('/inventory-scanner', (req, res) => {
         controls = null;
       }
       scannerPreview.srcObject = null;
+<<<<<<< Updated upstream
       startScanBtn.disabled = false;
     };
 
@@ -2142,6 +2438,48 @@ app.get('/inventory-scanner', (req, res) => {
       hasDetectedCode = false;
       barcodeValue.textContent = 'Waiting for scan';
       barcodeFormat.textContent = 'Looking for a supported barcode format.';
+=======
+    };
+
+    const processBarcode = async (barcodeText, formatText) => {
+      if (isBusy) {
+        return;
+      }
+      isBusy = true;
+      barcodeValue.textContent = barcodeText || 'Unknown barcode';
+      barcodeMeta.textContent = 'Format: ' + formatText;
+      setStatus('Saving inventory update...');
+      startScanBtn.disabled = true;
+      rescanBtn.disabled = true;
+      await stopScanning();
+
+      try {
+        const response = await fetch('/inventory/process-scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, barcode: barcodeText })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.redirectUrl) {
+          throw new Error((data && data.error) ? data.error : 'Unable to process scan.');
+        }
+        window.location.href = data.redirectUrl;
+      } catch (error) {
+        setStatus(error.message || 'Unable to process scan.', true);
+        barcodeMeta.textContent = 'Scan failed. Try again.';
+        isBusy = false;
+        startScanBtn.disabled = false;
+        rescanBtn.disabled = false;
+      }
+    };
+
+    const startScanning = async () => {
+      isBusy = false;
+      barcodeValue.textContent = 'Waiting for scan';
+      barcodeMeta.textContent = 'The scan result will appear here.';
+      startScanBtn.disabled = true;
+      rescanBtn.disabled = true;
+>>>>>>> Stashed changes
       setStatus('Starting camera...');
 
       if (!hasCameraSupport()) {
@@ -2159,23 +2497,41 @@ app.get('/inventory-scanner', (req, res) => {
           },
           scannerPreview,
           async (result, error) => {
+<<<<<<< Updated upstream
             if (result && !hasDetectedCode) {
               await showDetectedCode(result);
               return;
             }
 
             if (error && error.name !== 'NotFoundException' && !hasDetectedCode) {
+=======
+            if (result && !isBusy) {
+              await processBarcode(result.text, String(result.format || 'Unknown'));
+              return;
+            }
+
+            if (error && error.name !== 'NotFoundException' && !isBusy) {
+>>>>>>> Stashed changes
               setStatus('Camera is running, but the barcode could not be read yet.');
             }
           }
         );
         setStatus('Camera live. Hold the barcode inside the frame.');
+<<<<<<< Updated upstream
       } catch (error) {
         startScanBtn.disabled = false;
         rescanBtn.disabled = false;
         const message = error && error.message ? error.message : 'Unable to start camera.';
         setStatus(message, true);
         barcodeFormat.textContent = 'Camera access failed.';
+=======
+        rescanBtn.disabled = false;
+      } catch (error) {
+        startScanBtn.disabled = false;
+        rescanBtn.disabled = false;
+        setStatus(error && error.message ? error.message : 'Unable to start camera.', true);
+        barcodeMeta.textContent = 'Camera access failed.';
+>>>>>>> Stashed changes
       }
     };
 
@@ -2194,6 +2550,11 @@ app.get('/inventory-scanner', (req, res) => {
 
     if (!hasCameraSupport()) {
       showCameraSupportError();
+<<<<<<< Updated upstream
+=======
+    } else {
+      startScanning();
+>>>>>>> Stashed changes
     }
   </script>
 </body>
@@ -2202,6 +2563,772 @@ app.get('/inventory-scanner', (req, res) => {
   res.send(html);
 });
 
+<<<<<<< Updated upstream
+=======
+app.post('/inventory/process-scan', (req, res) => {
+  const action = String(req.body.action ?? '').toLowerCase();
+  const barcode = normalizeBarcode(req.body.barcode);
+
+  if (!['add', 'remove'].includes(action) || !barcode) {
+    res.status(400).json({ error: 'Invalid scan payload' });
+    return;
+  }
+
+  let inventory = [];
+  try {
+    inventory = readInventoryItems();
+  } catch (err) {
+    res.status(500).json({ error: 'Unable to load inventory.json' });
+    return;
+  }
+
+  const itemIndex = findInventoryItemIndex(inventory, barcode);
+
+  if (action === 'add') {
+    if (itemIndex === -1) {
+      res.json({ redirectUrl: '/inventory/create-item?barcode=' + encodeURIComponent(barcode) });
+      return;
+    }
+
+    inventory[itemIndex].amount += 1;
+
+    try {
+      writeInventoryItems(inventory);
+    } catch (err) {
+      res.status(500).json({ error: 'Unable to save inventory.json' });
+      return;
+    }
+
+    res.json({ redirectUrl: '/inventory/result?status=added&barcode=' + encodeURIComponent(barcode) });
+    return;
+  }
+
+  if (itemIndex === -1) {
+    res.json({ redirectUrl: '/inventory/result?status=missing&barcode=' + encodeURIComponent(barcode) });
+    return;
+  }
+
+  if (inventory[itemIndex].amount < 1) {
+    res.json({ redirectUrl: '/inventory/result?status=empty&barcode=' + encodeURIComponent(barcode) });
+    return;
+  }
+
+  inventory[itemIndex].amount -= 1;
+
+  try {
+    writeInventoryItems(inventory);
+  } catch (err) {
+    res.status(500).json({ error: 'Unable to save inventory.json' });
+    return;
+  }
+
+  res.json({ redirectUrl: '/inventory/result?status=removed&barcode=' + encodeURIComponent(barcode) });
+});
+
+app.get('/inventory/create-item', (req, res) => {
+  const barcode = normalizeBarcode(req.query.barcode);
+
+  if (!barcode) {
+    res.status(400).send('Missing barcode');
+    return;
+  }
+
+  const html = `
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Inventory Item</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 24px;
+      color: #e5e7eb;
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+      min-height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+    }
+    .page {
+      width: 100%;
+      max-width: 720px;
+    }
+    .header-row {
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      color: #bfdbfe;
+    }
+    .action-link,
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .action-link:hover,
+    button:hover {
+      background: #2563eb;
+    }
+    .card {
+      background: #0b1220;
+      border: 1px solid #1e3a8a;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.5);
+    }
+    .page-note {
+      color: #93c5fd;
+      font-size: 14px;
+      margin: 6px 0 0;
+      line-height: 1.5;
+    }
+    form {
+      display: grid;
+      gap: 12px;
+    }
+    label {
+      display: grid;
+      gap: 6px;
+      color: #dbeafe;
+      font-weight: 600;
+    }
+    input {
+      border: 1px solid #1d4ed8;
+      background: #111827;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+    .barcode-pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #1f2937;
+      background: #111827;
+      color: #dbeafe;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      .header-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .header-row > * {
+        width: 100%;
+      }
+      .action-link,
+      button {
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header-row">
+      <div>
+        <h1>Create Inventory Item</h1>
+        <p class="page-note">This barcode is not in inventory yet. Add a name and the item will be created with an amount of 1.</p>
+      </div>
+      <a class="action-link" href="/inventory">Back To Inventory</a>
+    </div>
+
+    <section class="card">
+      <form method="post" action="/inventory/create-item">
+        <input type="hidden" name="barcode" value="${escapeHtml(barcode)}" />
+        <label>
+          Barcode
+          <span class="barcode-pill">${escapeHtml(barcode)}</span>
+        </label>
+        <label>
+          Item Name
+          <input type="text" name="name" required />
+        </label>
+        <button type="submit">Create Item</button>
+      </form>
+    </section>
+  </div>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
+app.post('/inventory/create-item', (req, res) => {
+  const barcode = normalizeBarcode(req.body.barcode);
+  const name = String(req.body.name ?? '').trim();
+
+  if (!barcode || !name) {
+    res.status(400).send('Invalid inventory item');
+    return;
+  }
+
+  let inventory = [];
+  try {
+    inventory = readInventoryItems();
+  } catch (err) {
+    res.status(500).send('Unable to load inventory.json');
+    return;
+  }
+
+  if (findInventoryItemIndex(inventory, barcode) !== -1) {
+    res.redirect('/inventory/result?status=added&barcode=' + encodeURIComponent(barcode));
+    return;
+  }
+
+  inventory.push({
+    barcode,
+    name,
+    amount: 1
+  });
+
+  try {
+    writeInventoryItems(inventory);
+  } catch (err) {
+    res.status(500).send('Unable to save inventory.json');
+    return;
+  }
+
+  res.redirect('/inventory/result?status=created&barcode=' + encodeURIComponent(barcode));
+});
+
+app.get('/inventory/result', (req, res) => {
+  const status = String(req.query.status ?? '').toLowerCase();
+  const barcode = normalizeBarcode(req.query.barcode);
+
+  let inventory = [];
+  try {
+    inventory = readInventoryItems();
+  } catch (err) {
+    res.status(500).send('Unable to load inventory.json');
+    return;
+  }
+
+  const itemIndex = findInventoryItemIndex(inventory, barcode);
+  const item = itemIndex === -1 ? null : inventory[itemIndex];
+  const amount = item ? item.amount : null;
+  const itemName = item?.name || 'Unknown Item';
+
+  let isSuccess = false;
+  let pageTitle = 'Inventory Result';
+  let heading = 'Inventory update';
+  let message = 'The inventory action was processed.';
+
+  if (status === 'added' && item) {
+    isSuccess = true;
+    pageTitle = 'Item Added';
+    heading = 'Amount increased';
+    message = 'The amount of ' + itemName + ' was increased.';
+  } else if (status === 'created' && item) {
+    isSuccess = true;
+    pageTitle = 'Item Created';
+    heading = 'Item created and added';
+    message = itemName + ' was created and added to inventory.';
+  } else if (status === 'removed' && item) {
+    isSuccess = true;
+    pageTitle = 'Item Removed';
+    heading = 'Amount decreased';
+    message = 'The amount of ' + itemName + ' was removed.';
+  } else if (status === 'missing') {
+    pageTitle = 'Item Not Found';
+    heading = 'Item does not exist';
+    message = 'That barcode does not exist in inventory.';
+  } else if (status === 'empty' && item) {
+    pageTitle = 'No Stock Remaining';
+    heading = 'Nothing to remove';
+    message = itemName + ' is already at 0.';
+  } else {
+    pageTitle = 'Inventory Error';
+    heading = 'Unable to complete request';
+    message = 'The inventory update could not be completed.';
+  }
+
+  const statusColor = isSuccess ? '#22c55e' : '#ef4444';
+  const statusBorder = isSuccess ? '#166534' : '#b91c1c';
+  const statusBackground = isSuccess ? '#052e16' : '#450a0a';
+  const statusSymbol = isSuccess ? '&#10003;' : '&#10005;';
+  const amountMarkup = isSuccess && item
+    ? `
+      <div class="detail-card">
+        <div class="detail-label">New Amount</div>
+        <div class="detail-value">${escapeHtml(amount)}</div>
+      </div>`
+    : '';
+  const nameMarkup = item
+    ? `
+      <div class="detail-card">
+        <div class="detail-label">Item</div>
+        <div class="detail-value">${escapeHtml(itemName)}</div>
+      </div>`
+    : '';
+
+  const html = `
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(pageTitle)}</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 24px;
+      color: #e5e7eb;
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+      min-height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+    }
+    .page {
+      width: 100%;
+      max-width: 760px;
+    }
+    .header-row {
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      color: #bfdbfe;
+    }
+    .action-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .action-link:hover {
+      background: #2563eb;
+    }
+    .card {
+      background: #0b1220;
+      border: 1px solid #1e3a8a;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.5);
+      text-align: center;
+    }
+    .status-icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 18px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 6px solid ${statusBorder};
+      background: ${statusBackground};
+      color: ${statusColor};
+      font-size: 64px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .status-heading {
+      margin: 0;
+      font-size: clamp(28px, 7vw, 40px);
+      line-height: 1.05;
+      color: #ffffff;
+    }
+    .status-message {
+      margin: 10px auto 0;
+      max-width: 520px;
+      color: #93c5fd;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+    .details {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      text-align: left;
+    }
+    .detail-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .detail-label {
+      font-size: 12px;
+      color: #93c5fd;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .detail-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      word-break: break-word;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      .header-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .header-row > * {
+        width: 100%;
+      }
+      .action-link {
+        text-align: center;
+      }
+      .card {
+        padding: 20px 16px;
+      }
+      .status-icon {
+        width: 100px;
+        height: 100px;
+        font-size: 54px;
+      }
+      .details {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header-row">
+      <h1>${escapeHtml(pageTitle)}</h1>
+      <a class="action-link" href="/inventory">Back To Inventory</a>
+    </div>
+
+    <section class="card">
+      <div class="status-icon">${statusSymbol}</div>
+      <h2 class="status-heading">${escapeHtml(heading)}</h2>
+      <p class="status-message">${escapeHtml(message)}</p>
+      <div class="details">
+        ${nameMarkup}
+        <div class="detail-card">
+          <div class="detail-label">Barcode</div>
+          <div class="detail-value">${escapeHtml(barcode || 'Unknown')}</div>
+        </div>
+        ${amountMarkup}
+      </div>
+    </section>
+  </div>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
+app.get('/inventory', (req, res) => {
+  let inventory = [];
+  try {
+    inventory = readInventoryItems();
+  } catch (err) {
+    res.status(500).send('Unable to load inventory.json');
+    return;
+  }
+
+  const categories = ['barcode', 'name', 'amount'];
+  const headerCells = categories
+    .map((category) => `<th>${escapeHtml(capitalizeLabel(category))}</th>`)
+    .join('');
+  const rows = inventory.length
+    ? inventory
+        .map((entry) => {
+          const cells = categories
+            .map((category) => `<td data-label="${escapeHtml(capitalizeLabel(category))}">${escapeHtml(entry[category] ?? '')}</td>`)
+            .join('');
+          return `<tr>${cells}</tr>`;
+        })
+        .join('')
+    : `<tr><td colspan="${categories.length}">No inventory items found</td></tr>`;
+
+  const html = `
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 24px;
+      color: #e5e7eb;
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+      min-height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+    }
+    .page {
+      width: 100%;
+      max-width: 1100px;
+    }
+    .header-row {
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      color: #bfdbfe;
+    }
+    .action-link {
+      display: inline-block;
+      text-decoration: none;
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .action-link:hover {
+      background: #2563eb;
+    }
+    .summary {
+      margin-top: 14px;
+      background: #0b1220;
+      border: 1px solid #1e3a8a;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .summary-item {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .summary-label {
+      font-size: 12px;
+      color: #93c5fd;
+      margin-bottom: 4px;
+    }
+    .summary-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #e5e7eb;
+    }
+    .inventory-section {
+      margin-top: 16px;
+      background: #0b1220;
+      border: 1px solid #1e3a8a;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .section-title {
+      margin: 0 0 10px;
+      color: #dbeafe;
+      font-size: 16px;
+    }
+    .page-note {
+      color: #93c5fd;
+      font-size: 14px;
+      margin: 0;
+    }
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-width: 420px;
+      background: #0f172a;
+      border: 1px solid #1e3a8a;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.5);
+    }
+    th, td {
+      border-bottom: 1px solid #1f2937;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #172554;
+      color: #dbeafe;
+      font-weight: 600;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      .header-row,
+      .header-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .header-actions > * {
+        width: 100%;
+      }
+      .action-link {
+        text-align: center;
+      }
+      .summary {
+        grid-template-columns: 1fr;
+      }
+      .table-wrap {
+        overflow-x: visible;
+      }
+      table,
+      thead,
+      tbody,
+      tr,
+      th,
+      td {
+        display: block;
+        width: 100%;
+      }
+      thead {
+        display: none;
+      }
+      table {
+        min-width: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+      }
+      tbody {
+        display: grid;
+        gap: 12px;
+      }
+      tr {
+        background: #0f172a;
+        border: 1px solid #1e3a8a;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(2, 6, 23, 0.5);
+      }
+      th,
+      td {
+        padding: 8px;
+      }
+      td {
+        display: grid;
+        grid-template-columns: minmax(110px, 42%) minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        border-bottom: 1px solid #1f2937;
+      }
+      td::before {
+        content: attr(data-label);
+        color: #93c5fd;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      tbody tr td:last-child {
+        border-bottom: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header-row">
+      <div>
+        <h1>Inventory</h1>
+        <p class="page-note">This table reflects the current contents of <code>inventory.json</code>.</p>
+      </div>
+      <div class="header-actions">
+        <a class="action-link" href="/inventory-scanner">Open Scanner</a>
+        <a class="action-link" href="/">Back To Orders</a>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="summary-item">
+        <div class="summary-label">Inventory Records</div>
+        <div class="summary-value">${inventory.length}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Columns</div>
+        <div class="summary-value">${categories.length}</div>
+      </div>
+    </div>
+
+    <section class="inventory-section">
+      <h2 class="section-title">Inventory Table</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>${headerCells}</tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
+>>>>>>> Stashed changes
 app.get('/', (req, res) => {
   let orders = [];
   let items = [];
@@ -2893,7 +4020,11 @@ app.get('/', (req, res) => {
             <h1>Orders</h1>
           </div>
           <div class="header-actions">
+<<<<<<< Updated upstream
             <a class="action-link" href="/inventory-scanner">Inventory Scanner</a>
+=======
+            <a class="action-link" href="/inventory">Inventory</a>
+>>>>>>> Stashed changes
             <a class="action-link" href="/business-expenses">Business Expenses</a>
             <a class="action-link" href="/place-order">Place Order</a>
           </div>

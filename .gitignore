@@ -34,3 +34,4 @@ logs/
 orders.json
 expenses.json
 items.json
+inventory.json
