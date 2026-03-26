@@ -68,8 +68,6 @@ const normalizeNotesForSave = (notes) => {
   return value === 'No additional notes' ? '' : value;
 };
 
-<<<<<<< Updated upstream
-=======
 const normalizeBarcode = (value) => String(value ?? '').trim();
 
 const normalizeInventoryAmount = (value) => {
@@ -93,7 +91,6 @@ const writeInventoryItems = (items) => writeJsonFile(inventoryPath, items.map(sa
 const findInventoryItemIndex = (items, barcode) =>
   items.findIndex((item) => normalizeBarcode(item.barcode) === normalizeBarcode(barcode));
 
->>>>>>> Stashed changes
 ensureJsonFile(ordersPath, []);
 ensureJsonFile(itemsPath, []);
 ensureJsonFile(expensesPath, []);
@@ -1955,8 +1952,6 @@ app.get('/inventory-scanner', (req, res) => {
       border: 1px solid #1e3a8a;
       border-radius: 18px;
       box-shadow: 0 18px 40px rgba(2, 6, 23, 0.42);
-<<<<<<< Updated upstream
-=======
       padding: 20px;
     }
     .scanner-shell {
@@ -2124,15 +2119,12 @@ app.get('/inventory-scan', (req, res) => {
       background: #0b1220;
       border: 1px solid #1e3a8a;
       border-radius: 12px;
->>>>>>> Stashed changes
       padding: 16px;
     }
     .scanner-shell {
       display: grid;
       gap: 14px;
     }
-<<<<<<< Updated upstream
-=======
     .section-label {
       margin: 0;
       font-size: 12px;
@@ -2156,7 +2148,6 @@ app.get('/inventory-scan', (req, res) => {
     .status-line.error {
       color: #fca5a5;
     }
->>>>>>> Stashed changes
     .video-frame {
       position: relative;
       overflow: hidden;
@@ -2205,19 +2196,6 @@ app.get('/inventory-scan', (req, res) => {
       border-right: 4px solid #60a5fa;
       border-radius: 0 14px 0 0;
     }
-<<<<<<< Updated upstream
-    .status-line {
-      margin: 0;
-      color: #bfdbfe;
-      line-height: 1.5;
-    }
-    .status-line.error {
-      color: #fca5a5;
-    }
-    .result-card {
-      border: 1px solid #1f2937;
-      background: #0b1220;
-=======
     .button-row {
       display: flex;
       gap: 10px;
@@ -2226,7 +2204,6 @@ app.get('/inventory-scan', (req, res) => {
     .result-card {
       border: 1px solid #1f2937;
       background: #0f172a;
->>>>>>> Stashed changes
       border-radius: 14px;
       padding: 14px;
       display: grid;
@@ -2252,31 +2229,6 @@ app.get('/inventory-scan', (req, res) => {
       color: #93c5fd;
       font-size: 14px;
     }
-<<<<<<< Updated upstream
-    .button-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .camera-note {
-      margin: 0;
-      color: #93c5fd;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    @media (max-width: 640px) {
-      body {
-        padding: 14px;
-      }
-      .header-row,
-      .button-row {
-        flex-direction: column;
-      }
-      .header-row > *,
-      .button-row > * {
-        width: 100%;
-      }
-=======
     @media (max-width: 640px) {
       body {
         padding: 16px;
@@ -2295,7 +2247,6 @@ app.get('/inventory-scan', (req, res) => {
       button {
         text-align: center;
       }
->>>>>>> Stashed changes
       .video-frame {
         min-height: 420px;
       }
@@ -2309,10 +2260,6 @@ app.get('/inventory-scan', (req, res) => {
 <body>
   <div class="page">
     <div class="header-row">
-<<<<<<< Updated upstream
-      <h1>Inventory Scanner</h1>
-      <a class="action-link" href="/">Back To Orders</a>
-=======
       <div>
         <h1>${actionLabel} Inventory</h1>
         <p class="page-note">${escapeHtml(actionDescription)}</p>
@@ -2320,7 +2267,6 @@ app.get('/inventory-scan', (req, res) => {
       <div class="header-actions">
         <a class="action-link" href="/inventory">Back To Inventory</a>
       </div>
->>>>>>> Stashed changes
     </div>
 
     <section class="card scanner-shell">
@@ -2329,61 +2275,35 @@ app.get('/inventory-scan', (req, res) => {
         <div class="scan-window" aria-hidden="true"></div>
       </div>
 
-<<<<<<< Updated upstream
-      <p id="scannerStatus" class="status-line">Ready to use the camera.</p>
-
-      <div class="button-row">
-        <button id="startScanBtn" type="button">Start Camera</button>
-        <button id="rescanBtn" class="secondary-btn" type="button" disabled>Scan Again</button>
-=======
       <p id="scannerStatus" class="status-line">Starting camera...</p>
 
       <div class="button-row">
         <button id="startScanBtn" type="button">Start Camera</button>
         <button id="rescanBtn" type="button">Scan Again</button>
->>>>>>> Stashed changes
       </div>
 
       <div class="result-card">
         <p class="result-label">Detected Barcode</p>
         <p id="barcodeValue" class="barcode-value">Waiting for scan</p>
-<<<<<<< Updated upstream
-        <p id="barcodeFormat" class="result-meta">No barcode detected yet.</p>
-      </div>
-
-      <p class="camera-note">Use your phone browser, allow camera access, and point the rear camera at a barcode. This page works best over HTTPS or on localhost.</p>
-=======
         <p id="barcodeMeta" class="result-meta">The scan result will appear here.</p>
       </div>
->>>>>>> Stashed changes
     </section>
   </div>
 
   <script type="module">
     import { BrowserMultiFormatReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm';
 
-<<<<<<< Updated upstream
-    const scannerPreview = document.getElementById('scannerPreview');
-    const scannerStatus = document.getElementById('scannerStatus');
-    const barcodeValue = document.getElementById('barcodeValue');
-    const barcodeFormat = document.getElementById('barcodeFormat');
-=======
     const action = ${JSON.stringify(action)};
     const scannerPreview = document.getElementById('scannerPreview');
     const scannerStatus = document.getElementById('scannerStatus');
     const barcodeValue = document.getElementById('barcodeValue');
     const barcodeMeta = document.getElementById('barcodeMeta');
->>>>>>> Stashed changes
     const startScanBtn = document.getElementById('startScanBtn');
     const rescanBtn = document.getElementById('rescanBtn');
 
     const codeReader = new BrowserMultiFormatReader();
     let controls = null;
-<<<<<<< Updated upstream
-    let hasDetectedCode = false;
-=======
     let isBusy = false;
->>>>>>> Stashed changes
 
     const setStatus = (message, isError = false) => {
       scannerStatus.textContent = message;
@@ -2402,11 +2322,7 @@ app.get('/inventory-scan', (req, res) => {
         : 'This browser does not expose the camera API needed for barcode scanning.';
       setStatus(message, true);
       barcodeValue.textContent = 'Camera unavailable';
-<<<<<<< Updated upstream
-      barcodeFormat.textContent = !window.isSecureContext && !isLocalhost
-=======
       barcodeMeta.textContent = !window.isSecureContext && !isLocalhost
->>>>>>> Stashed changes
         ? 'Open this page over HTTPS on your phone.'
         : 'Try Safari, Chrome, or another current mobile browser.';
       startScanBtn.disabled = true;
@@ -2419,26 +2335,6 @@ app.get('/inventory-scan', (req, res) => {
         controls = null;
       }
       scannerPreview.srcObject = null;
-<<<<<<< Updated upstream
-      startScanBtn.disabled = false;
-    };
-
-    const showDetectedCode = async (result) => {
-      hasDetectedCode = true;
-      barcodeValue.textContent = result.text || 'No barcode text';
-      barcodeFormat.textContent = 'Format: ' + String(result.format || 'Unknown');
-      rescanBtn.disabled = false;
-      setStatus('Barcode detected. Camera stopped.');
-      await stopScanning();
-    };
-
-    const startScanning = async () => {
-      startScanBtn.disabled = true;
-      rescanBtn.disabled = true;
-      hasDetectedCode = false;
-      barcodeValue.textContent = 'Waiting for scan';
-      barcodeFormat.textContent = 'Looking for a supported barcode format.';
-=======
     };
 
     const processBarcode = async (barcodeText, formatText) => {
@@ -2479,7 +2375,6 @@ app.get('/inventory-scan', (req, res) => {
       barcodeMeta.textContent = 'The scan result will appear here.';
       startScanBtn.disabled = true;
       rescanBtn.disabled = true;
->>>>>>> Stashed changes
       setStatus('Starting camera...');
 
       if (!hasCameraSupport()) {
@@ -2497,41 +2392,23 @@ app.get('/inventory-scan', (req, res) => {
           },
           scannerPreview,
           async (result, error) => {
-<<<<<<< Updated upstream
-            if (result && !hasDetectedCode) {
-              await showDetectedCode(result);
-              return;
-            }
-
-            if (error && error.name !== 'NotFoundException' && !hasDetectedCode) {
-=======
             if (result && !isBusy) {
               await processBarcode(result.text, String(result.format || 'Unknown'));
               return;
             }
 
             if (error && error.name !== 'NotFoundException' && !isBusy) {
->>>>>>> Stashed changes
               setStatus('Camera is running, but the barcode could not be read yet.');
             }
           }
         );
         setStatus('Camera live. Hold the barcode inside the frame.');
-<<<<<<< Updated upstream
-      } catch (error) {
-        startScanBtn.disabled = false;
-        rescanBtn.disabled = false;
-        const message = error && error.message ? error.message : 'Unable to start camera.';
-        setStatus(message, true);
-        barcodeFormat.textContent = 'Camera access failed.';
-=======
         rescanBtn.disabled = false;
       } catch (error) {
         startScanBtn.disabled = false;
         rescanBtn.disabled = false;
         setStatus(error && error.message ? error.message : 'Unable to start camera.', true);
         barcodeMeta.textContent = 'Camera access failed.';
->>>>>>> Stashed changes
       }
     };
 
@@ -2550,11 +2427,8 @@ app.get('/inventory-scan', (req, res) => {
 
     if (!hasCameraSupport()) {
       showCameraSupportError();
-<<<<<<< Updated upstream
-=======
     } else {
       startScanning();
->>>>>>> Stashed changes
     }
   </script>
 </body>
@@ -2563,8 +2437,6 @@ app.get('/inventory-scan', (req, res) => {
   res.send(html);
 });
 
-<<<<<<< Updated upstream
-=======
 app.post('/inventory/process-scan', (req, res) => {
   const action = String(req.body.action ?? '').toLowerCase();
   const barcode = normalizeBarcode(req.body.barcode);
@@ -3328,7 +3200,6 @@ app.get('/inventory', (req, res) => {
   res.send(html);
 });
 
->>>>>>> Stashed changes
 app.get('/', (req, res) => {
   let orders = [];
   let items = [];
@@ -4020,11 +3891,7 @@ app.get('/', (req, res) => {
             <h1>Orders</h1>
           </div>
           <div class="header-actions">
-<<<<<<< Updated upstream
-            <a class="action-link" href="/inventory-scanner">Inventory Scanner</a>
-=======
             <a class="action-link" href="/inventory">Inventory</a>
->>>>>>> Stashed changes
             <a class="action-link" href="/business-expenses">Business Expenses</a>
             <a class="action-link" href="/place-order">Place Order</a>
           </div>
