@@ -347,13 +347,22 @@ app.get('/place-order', (req, res) => {
       justify-content: space-between;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
     }
     h1 {
       margin: 0;
       color: #bfdbfe;
     }
+    .page-note {
+      color: #93c5fd;
+      font-size: 14px;
+      margin: 6px 0 0;
+      line-height: 1.5;
+    }
     .action-link {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       text-decoration: none;
       border: 1px solid #3b82f6;
       background: #1d4ed8;
@@ -382,6 +391,7 @@ app.get('/place-order', (req, res) => {
     }
     input,
     select {
+      width: 100%;
       border: 1px solid #1d4ed8;
       background: #111827;
       border-radius: 8px;
@@ -409,6 +419,7 @@ app.get('/place-order', (req, res) => {
       }
       .header-row {
         align-items: stretch;
+        flex-direction: column;
       }
       .action-link,
       button {
@@ -424,7 +435,10 @@ app.get('/place-order', (req, res) => {
 <body>
   <div class="page">
     <div class="header-row">
-      <h1>Place Order</h1>
+      <div>
+        <h1>Place Order</h1>
+        <p class="page-note">Create a new order and autofill pricing from an existing item.</p>
+      </div>
       <a class="action-link" href="/">Back To Orders</a>
     </div>
     <form method="post" action="/place-order">
@@ -583,8 +597,16 @@ app.get('/business-expenses', (req, res) => {
       margin: 0;
       color: #bfdbfe;
     }
+    .page-note {
+      color: #93c5fd;
+      font-size: 14px;
+      margin: 6px 0 0;
+      line-height: 1.5;
+    }
     .action-link {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       text-decoration: none;
       border: 1px solid #3b82f6;
       background: #1d4ed8;
@@ -805,6 +827,7 @@ app.get('/business-expenses', (req, res) => {
       }
       .header-row {
         align-items: stretch;
+        flex-direction: column;
       }
       .header-actions,
       .controls,
@@ -894,7 +917,7 @@ app.get('/business-expenses', (req, res) => {
     <div class="header-row">
       <div>
         <h1>Business Expenses</h1>
-        <p class="page-note">Starting with total money made. Additional business metrics can be added here later.</p>
+        <p class="page-note">Review expense tracking alongside current revenue, material cost, and profit totals.</p>
       </div>
       <div class="header-actions">
         <a class="action-link" href="/add-business-expense">Add Expense</a>
@@ -1169,8 +1192,16 @@ app.get('/add-business-expense', (req, res) => {
       margin: 0;
       color: #bfdbfe;
     }
+    .page-note {
+      color: #93c5fd;
+      font-size: 14px;
+      margin: 6px 0 0;
+      line-height: 1.5;
+    }
     .action-link {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       text-decoration: none;
       border: 1px solid #3b82f6;
       background: #1d4ed8;
@@ -1198,6 +1229,7 @@ app.get('/add-business-expense', (req, res) => {
       font-weight: 600;
     }
     input {
+      width: 100%;
       border: 1px solid #1d4ed8;
       background: #111827;
       border-radius: 8px;
@@ -1225,6 +1257,7 @@ app.get('/add-business-expense', (req, res) => {
       }
       .header-row {
         align-items: stretch;
+        flex-direction: column;
       }
       .action-link,
       button {
@@ -1240,7 +1273,10 @@ app.get('/add-business-expense', (req, res) => {
 <body>
   <div class="page">
     <div class="header-row">
-      <h1>Add Business Expense</h1>
+      <div>
+        <h1>Add Business Expense</h1>
+        <p class="page-note">Log a new business cost so it appears in your expense totals.</p>
+      </div>
       <a class="action-link" href="/business-expenses">Back To Expenses</a>
     </div>
     <form method="post" action="/add-business-expense">
@@ -1559,17 +1595,15 @@ app.get('/orders/:orderId', (req, res) => {
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 36%),
-        linear-gradient(180deg, #020617 0%, #0f172a 46%, #111827 100%);
-      color: #e2e8f0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+      color: #e5e7eb;
     }
     a { color: inherit; }
     .page-shell {
-      width: min(960px, calc(100% - 32px));
+      width: min(1100px, calc(100% - 32px));
       margin: 0 auto;
-      padding: 32px 0 48px;
+      padding: 24px 0 48px;
     }
     .topbar {
       display: flex;
@@ -1591,22 +1625,22 @@ app.get('/orders/:orderId', (req, res) => {
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 12px 18px;
+      padding: 10px 14px;
       border: 1px solid #3b82f6;
       border-radius: 10px;
-      background: linear-gradient(180deg, rgba(37, 99, 235, 0.35), rgba(29, 78, 216, 0.7));
-      color: #eff6ff;
+      background: #1d4ed8;
+      color: #ffffff;
       text-decoration: none;
       font-size: 0.98rem;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
     }
-    button:hover, .action-link:hover { filter: brightness(1.06); }
+    button:hover, .action-link:hover { background: #2563eb; }
     .panel {
-      background: rgba(15, 23, 42, 0.92);
+      background: #0f172a;
       border: 1px solid #1e3a8a;
-      border-radius: 18px;
-      box-shadow: 0 24px 70px rgba(2, 6, 23, 0.42);
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.5);
       overflow: hidden;
     }
     .panel-header {
@@ -1640,7 +1674,7 @@ app.get('/orders/:orderId', (req, res) => {
     .field,
     .notes-field,
     .summary-card {
-      background: rgba(15, 23, 42, 0.78);
+      background: #111827;
       border: 1px solid #1f2937;
       border-radius: 14px;
       padding: 16px;
@@ -1657,10 +1691,10 @@ app.get('/orders/:orderId', (req, res) => {
     .notes-field textarea {
       width: 100%;
       padding: 12px 14px;
-      border: 1px solid #334155;
+      border: 1px solid #1d4ed8;
       border-radius: 10px;
-      background: rgba(15, 23, 42, 0.95);
-      color: #e2e8f0;
+      background: #111827;
+      color: #e5e7eb;
       font-size: 1rem;
     }
     .notes-field {
@@ -1698,7 +1732,7 @@ app.get('/orders/:orderId', (req, res) => {
       font-size: 0.92rem;
     }
     @media (max-width: 720px) {
-      .page-shell { width: min(100% - 20px, 960px); padding-top: 20px; }
+      .page-shell { width: min(100% - 20px, 1100px); padding-top: 20px; }
       .topbar, .panel-header, .form-actions { flex-direction: column; align-items: stretch; }
       .grid, .summary-grid { grid-template-columns: 1fr; }
     }
@@ -1898,12 +1932,10 @@ app.get('/inventory-scanner', (req, res) => {
       min-height: 100vh;
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       color: #e5e7eb;
-      background:
-        radial-gradient(circle at top, rgba(37, 99, 235, 0.26) 0%, rgba(11, 18, 32, 0) 36%),
-        linear-gradient(180deg, #08111f 0%, #111827 100%);
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
       display: flex;
       justify-content: center;
-      padding: 20px;
+      padding: 24px;
     }
     .page {
       width: 100%;
@@ -1948,11 +1980,11 @@ app.get('/inventory-scanner', (req, res) => {
       background: #334155;
     }
     .card {
-      background: rgba(15, 23, 42, 0.9);
+      background: #0b1220;
       border: 1px solid #1e3a8a;
-      border-radius: 18px;
-      box-shadow: 0 18px 40px rgba(2, 6, 23, 0.42);
-      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.5);
+      padding: 16px;
     }
     .scanner-shell {
       display: grid;
@@ -1983,14 +2015,22 @@ app.get('/inventory-scanner', (req, res) => {
       flex-wrap: wrap;
     }
     .choice-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       flex: 1 1 220px;
       min-height: 120px;
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
       border-radius: 16px;
       font-size: 24px;
       font-weight: 800;
       letter-spacing: 0.02em;
       text-decoration: none;
       color: #ffffff;
+    }
+    .choice-btn:hover {
+      background: #2563eb;
     }
     .choice-btn.remove-btn {
       background: #991b1b;
@@ -2001,7 +2041,7 @@ app.get('/inventory-scanner', (req, res) => {
     }
     @media (max-width: 640px) {
       body {
-        padding: 14px;
+        padding: 16px;
       }
       .header-row,
       .button-grid {
@@ -2319,7 +2359,6 @@ app.get('/inventory-scan', (req, res) => {
             class="manual-input"
             name="barcode"
             type="text"
-            inputmode="numeric"
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"
@@ -2656,6 +2695,7 @@ app.get('/inventory/create-item', (req, res) => {
       font-weight: 600;
     }
     input {
+      width: 100%;
       border: 1px solid #1d4ed8;
       background: #111827;
       border-radius: 8px;
@@ -3009,6 +3049,7 @@ app.get('/inventory', (req, res) => {
     return;
   }
 
+  const totalUnits = inventory.reduce((sum, entry) => sum + normalizeInventoryAmount(entry.amount), 0);
   const categories = ['barcode', 'name', 'amount'];
   const headerCells = categories
     .map((category) => `<th>${escapeHtml(capitalizeLabel(category))}</th>`)
@@ -3068,7 +3109,9 @@ app.get('/inventory', (req, res) => {
       color: #bfdbfe;
     }
     .action-link {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       text-decoration: none;
       border: 1px solid #3b82f6;
       background: #1d4ed8;
@@ -3121,7 +3164,8 @@ app.get('/inventory', (req, res) => {
     .page-note {
       color: #93c5fd;
       font-size: 14px;
-      margin: 0;
+      margin: 6px 0 0;
+      line-height: 1.5;
     }
     .table-wrap {
       width: 100%;
@@ -3242,12 +3286,12 @@ app.get('/inventory', (req, res) => {
 
     <div class="summary">
       <div class="summary-item">
-        <div class="summary-label">Inventory Records</div>
+        <div class="summary-label">Inventory Items</div>
         <div class="summary-value">${inventory.length}</div>
       </div>
       <div class="summary-item">
-        <div class="summary-label">Columns</div>
-        <div class="summary-value">${categories.length}</div>
+        <div class="summary-label">Total Units</div>
+        <div class="summary-value">${totalUnits}</div>
       </div>
     </div>
 
@@ -3691,7 +3735,9 @@ app.get('/', (req, res) => {
       background: #b91c1c;
     }
     .action-link {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       text-decoration: none;
       border: 1px solid #3b82f6;
       background: #1d4ed8;
