@@ -359,7 +359,8 @@ app.get('/place-order', (req, res) => {
       margin: 6px 0 0;
       line-height: 1.5;
     }
-    .action-link {
+    .action-link,
+    button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -371,7 +372,8 @@ app.get('/place-order', (req, res) => {
       border-radius: 10px;
       font-weight: 600;
     }
-    .action-link:hover {
+    .action-link:hover,
+    button:hover {
       background: #2563eb;
     }
     form {
@@ -2607,6 +2609,46 @@ app.post('/inventory/process-scan', (req, res) => {
   res.json({ redirectUrl: '/inventory/result?status=removed&barcode=' + encodeURIComponent(barcode) });
 });
 
+app.post('/save-inventory', (req, res) => {
+  const { inventoryUpdates } = req.body;
+
+  if (!Array.isArray(inventoryUpdates)) {
+    res.status(400).json({ error: 'Invalid payload' });
+    return;
+  }
+
+  const nextInventory = [];
+  const seenBarcodes = new Set();
+
+  for (const update of inventoryUpdates) {
+    const barcode = normalizeBarcode(update?.barcode);
+    const name = String(update?.name ?? '').trim();
+    const amount = Number(update?.amount);
+
+    if (!barcode || !name || !Number.isInteger(amount) || amount < 0) {
+      res.status(400).json({ error: 'Each inventory item needs a barcode, name, and a whole number amount.' });
+      return;
+    }
+
+    if (seenBarcodes.has(barcode)) {
+      res.status(400).json({ error: 'Inventory barcodes must stay unique.' });
+      return;
+    }
+
+    seenBarcodes.add(barcode);
+    nextInventory.push({ barcode, name, amount });
+  }
+
+  try {
+    writeInventoryItems(nextInventory);
+  } catch (err) {
+    res.status(500).json({ error: 'Unable to save inventory.json' });
+    return;
+  }
+
+  res.json({ success: true });
+});
+
 app.get('/inventory/create-item', (req, res) => {
   const barcode = normalizeBarcode(req.query.barcode);
 
@@ -2816,6 +2858,8 @@ app.get('/inventory/result', (req, res) => {
   const item = itemIndex === -1 ? null : inventory[itemIndex];
   const amount = item ? item.amount : null;
   const itemName = item?.name || 'Unknown Item';
+  const nextAction = ['removed', 'missing', 'empty'].includes(status) ? 'remove' : 'add';
+  const nextActionLabel = nextAction === 'remove' ? 'Remove' : 'Add';
 
   let isSuccess = false;
   let pageTitle = 'Inventory Result';
@@ -2985,6 +3029,57 @@ app.get('/inventory/result', (req, res) => {
       color: #ffffff;
       word-break: break-word;
     }
+    .quick-entry {
+      margin-top: 16px;
+      background: #0b1220;
+      border: 1px solid #1e3a8a;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.5);
+    }
+    .quick-entry-header {
+      margin-bottom: 10px;
+    }
+    .quick-entry-label {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .quick-entry-note {
+      margin: 6px 0 0;
+      color: #93c5fd;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .quick-entry-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .quick-entry-input {
+      flex: 1 1 260px;
+      min-width: 0;
+      border: 1px solid #1d4ed8;
+      background: #111827;
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #e5e7eb;
+      font: inherit;
+    }
+    .quick-entry-input::placeholder {
+      color: #6b7280;
+    }
+    .quick-entry-status {
+      margin: 10px 0 0;
+      color: #93c5fd;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .quick-entry-status.error {
+      color: #fca5a5;
+    }
     @media (max-width: 640px) {
       body {
         padding: 16px;
@@ -3010,6 +3105,12 @@ app.get('/inventory/result', (req, res) => {
       .details {
         grid-template-columns: 1fr;
       }
+      .quick-entry-form {
+        flex-direction: column;
+      }
+      .quick-entry-form > * {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -3033,7 +3134,76 @@ app.get('/inventory/result', (req, res) => {
         ${amountMarkup}
       </div>
     </section>
+
+    <section class="quick-entry">
+      <div class="quick-entry-header">
+        <p class="quick-entry-label">Quick ${escapeHtml(nextActionLabel)}</p>
+        <p class="quick-entry-note">Use this field to type a barcode or scan with a physical reader and press Enter to keep moving.</p>
+      </div>
+      <form id="resultManualEntryForm" class="quick-entry-form">
+        <input
+          id="resultManualBarcodeInput"
+          class="quick-entry-input"
+          name="barcode"
+          type="text"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="Enter or scan barcode"
+        />
+        <button id="resultManualSubmitBtn" type="submit">${escapeHtml(nextActionLabel)} Barcode</button>
+      </form>
+      <p id="resultManualStatus" class="quick-entry-status">Ready for the next barcode.</p>
+    </section>
   </div>
+  <script>
+    const resultManualEntryForm = document.getElementById('resultManualEntryForm');
+    const resultManualBarcodeInput = document.getElementById('resultManualBarcodeInput');
+    const resultManualSubmitBtn = document.getElementById('resultManualSubmitBtn');
+    const resultManualStatus = document.getElementById('resultManualStatus');
+    const nextAction = ${JSON.stringify(nextAction)};
+
+    const setResultManualStatus = (message, isError = false) => {
+      resultManualStatus.textContent = message;
+      resultManualStatus.classList.toggle('error', isError);
+    };
+
+    resultManualEntryForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const normalizedBarcode = resultManualBarcodeInput.value.trim();
+
+      if (!normalizedBarcode) {
+        setResultManualStatus('Enter or scan a barcode first.', true);
+        return;
+      }
+
+      resultManualSubmitBtn.disabled = true;
+      resultManualBarcodeInput.disabled = true;
+      setResultManualStatus('Processing barcode...');
+
+      try {
+        const response = await fetch('/inventory/process-scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: nextAction, barcode: normalizedBarcode })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.redirectUrl) {
+          throw new Error((data && data.error) ? data.error : 'Unable to process barcode.');
+        }
+        window.location.href = data.redirectUrl;
+      } catch (error) {
+        resultManualSubmitBtn.disabled = false;
+        resultManualBarcodeInput.disabled = false;
+        resultManualBarcodeInput.focus();
+        setResultManualStatus(error.message || 'Unable to process barcode.', true);
+      }
+    });
+
+    window.setTimeout(() => {
+      resultManualBarcodeInput.focus();
+    }, 0);
+  </script>
 </body>
 </html>`;
 
@@ -3050,20 +3220,44 @@ app.get('/inventory', (req, res) => {
   }
 
   const totalUnits = inventory.reduce((sum, entry) => sum + normalizeInventoryAmount(entry.amount), 0);
-  const categories = ['barcode', 'name', 'amount'];
+  const categories = ['barcode', 'name', 'amount', 'action'];
   const headerCells = categories
-    .map((category) => `<th>${escapeHtml(capitalizeLabel(category))}</th>`)
+    .map((category) => `<th>${escapeHtml(category === 'action' ? 'Action' : capitalizeLabel(category))}</th>`)
     .join('');
+  const emptyInventoryRowHtml = `<tr><td colspan="${categories.length}">No inventory items found</td></tr>`;
   const rows = inventory.length
     ? inventory
-        .map((entry) => {
-          const cells = categories
-            .map((category) => `<td data-label="${escapeHtml(capitalizeLabel(category))}">${escapeHtml(entry[category] ?? '')}</td>`)
-            .join('');
-          return `<tr>${cells}</tr>`;
+        .map((entry, index) => {
+          const cells = [
+            [
+              '<td data-label="Barcode">',
+              `<span class="display-value" data-field="barcode">${escapeHtml(entry.barcode ?? '')}</span>`,
+              `<input class="edit-field" data-field="barcode" type="text" value="${escapeHtml(entry.barcode ?? '')}" />`,
+              '</td>'
+            ].join(''),
+            [
+              '<td data-label="Name">',
+              `<span class="display-value" data-field="name">${escapeHtml(entry.name ?? '')}</span>`,
+              `<input class="edit-field" data-field="name" type="text" value="${escapeHtml(entry.name ?? '')}" />`,
+              '</td>'
+            ].join(''),
+            [
+              '<td data-label="Amount">',
+              `<span class="display-value" data-field="amount">${escapeHtml(entry.amount ?? 0)}</span>`,
+              `<input class="edit-field" data-field="amount" type="number" min="0" step="1" value="${escapeHtml(entry.amount ?? 0)}" />`,
+              '</td>'
+            ].join(''),
+            [
+              '<td data-label="Action">',
+              '<span class="display-value">-</span>',
+              '<button class="edit-field danger-btn inventory-delete-btn" type="button">Delete</button>',
+              '</td>'
+            ].join('')
+          ].join('');
+          return `<tr data-inventory-index="${index}">${cells}</tr>`;
         })
         .join('')
-    : `<tr><td colspan="${categories.length}">No inventory items found</td></tr>`;
+    : emptyInventoryRowHtml;
 
   const html = `
 <!doctype html>
@@ -3123,6 +3317,25 @@ app.get('/inventory', (req, res) => {
     .action-link:hover {
       background: #2563eb;
     }
+    button {
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .danger-btn {
+      border-color: #dc2626;
+      background: #991b1b;
+    }
+    .danger-btn:hover {
+      background: #b91c1c;
+    }
     .summary {
       margin-top: 14px;
       background: #0b1220;
@@ -3155,6 +3368,12 @@ app.get('/inventory', (req, res) => {
       border: 1px solid #1e3a8a;
       border-radius: 12px;
       padding: 12px;
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
     .section-title {
       margin: 0 0 10px;
@@ -3193,6 +3412,34 @@ app.get('/inventory', (req, res) => {
       color: #dbeafe;
       font-weight: 600;
     }
+    input {
+      border: 1px solid #1d4ed8;
+      background: #111827;
+      border-radius: 8px;
+      padding: 6px 8px;
+      color: #e5e7eb;
+      max-width: 100%;
+    }
+    .edit-field {
+      display: none;
+    }
+    body.editing .display-value {
+      display: none;
+    }
+    body.editing .edit-field {
+      display: inline-block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #saveInventoryBtn {
+      display: none;
+    }
+    body.editing #editInventoryBtn {
+      display: none;
+    }
+    body.editing #saveInventoryBtn {
+      display: inline-block;
+    }
     tbody tr:last-child td {
       border-bottom: none;
     }
@@ -3201,11 +3448,13 @@ app.get('/inventory', (req, res) => {
         padding: 16px;
       }
       .header-row,
-      .header-actions {
+      .header-actions,
+      .controls {
         align-items: stretch;
         flex-direction: column;
       }
-      .header-actions > * {
+      .header-actions > *,
+      .controls > * {
         width: 100%;
       }
       .action-link {
@@ -3268,6 +3517,9 @@ app.get('/inventory', (req, res) => {
       tbody tr td:last-child {
         border-bottom: none;
       }
+      body.editing .edit-field {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -3287,11 +3539,11 @@ app.get('/inventory', (req, res) => {
     <div class="summary">
       <div class="summary-item">
         <div class="summary-label">Inventory Items</div>
-        <div class="summary-value">${inventory.length}</div>
+        <div id="totalInventoryItems" class="summary-value">${inventory.length}</div>
       </div>
       <div class="summary-item">
         <div class="summary-label">Total Units</div>
-        <div class="summary-value">${totalUnits}</div>
+        <div id="totalUnits" class="summary-value">${totalUnits}</div>
       </div>
     </div>
 
@@ -3302,13 +3554,106 @@ app.get('/inventory', (req, res) => {
           <thead>
             <tr>${headerCells}</tr>
           </thead>
-          <tbody>
+          <tbody id="inventoryTableBody">
             ${rows}
           </tbody>
         </table>
       </div>
+      <div class="controls">
+        <button id="editInventoryBtn" type="button">Edit Inventory</button>
+        <button id="saveInventoryBtn" type="button">Save Changes</button>
+      </div>
     </section>
   </div>
+  <script>
+    const inventoryTableBody = document.getElementById('inventoryTableBody');
+    const editInventoryBtn = document.getElementById('editInventoryBtn');
+    const saveInventoryBtn = document.getElementById('saveInventoryBtn');
+    const totalInventoryItemsEl = document.getElementById('totalInventoryItems');
+    const totalUnitsEl = document.getElementById('totalUnits');
+    const emptyInventoryRowHtml = ${JSON.stringify(emptyInventoryRowHtml)};
+
+    const recalculateInventorySummary = () => {
+      const rows = Array.from(document.querySelectorAll('tbody tr[data-inventory-index]'));
+      const totalItems = rows.length;
+      const totalUnits = rows.reduce((sum, row) => {
+        const amountInput = row.querySelector('input[data-field="amount"]');
+        const amountDisplay = row.querySelector('span.display-value[data-field="amount"]');
+        const amountValue = amountInput
+          ? Number(amountInput.value)
+          : Number(amountDisplay ? amountDisplay.textContent : 0);
+        return sum + (Number.isFinite(amountValue) && amountValue >= 0 ? amountValue : 0);
+      }, 0);
+
+      totalInventoryItemsEl.textContent = String(totalItems);
+      totalUnitsEl.textContent = String(totalUnits);
+    };
+
+    const ensureInventoryEmptyState = () => {
+      const rows = Array.from(document.querySelectorAll('tbody tr[data-inventory-index]'));
+      if (rows.length === 0) {
+        inventoryTableBody.innerHTML = emptyInventoryRowHtml;
+      }
+    };
+
+    inventoryTableBody.addEventListener('click', (event) => {
+      if (!document.body.classList.contains('editing')) {
+        return;
+      }
+      const deleteBtn = event.target.closest('.inventory-delete-btn');
+      if (!deleteBtn) {
+        return;
+      }
+      const row = deleteBtn.closest('tr[data-inventory-index]');
+      if (!row) {
+        return;
+      }
+      row.remove();
+      ensureInventoryEmptyState();
+      recalculateInventorySummary();
+    });
+
+    inventoryTableBody.addEventListener('input', (event) => {
+      if (!event.target.matches('input[data-field="amount"]')) {
+        return;
+      }
+      recalculateInventorySummary();
+    });
+
+    editInventoryBtn.addEventListener('click', () => {
+      document.body.classList.add('editing');
+      recalculateInventorySummary();
+    });
+
+    saveInventoryBtn.addEventListener('click', async () => {
+      const rows = Array.from(document.querySelectorAll('tbody tr[data-inventory-index]'));
+      const inventoryUpdates = rows.map((row) => ({
+        barcode: row.querySelector('input[data-field="barcode"]')?.value ?? '',
+        name: row.querySelector('input[data-field="name"]')?.value ?? '',
+        amount: row.querySelector('input[data-field="amount"]')?.value ?? '0'
+      }));
+
+      const response = await fetch('/save-inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inventoryUpdates })
+      });
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = null;
+      }
+
+      if (!response.ok) {
+        alert((data && data.error) ? data.error : 'Unable to save inventory.');
+        return;
+      }
+
+      window.location.reload();
+    });
+  </script>
 </body>
 </html>`;
 
