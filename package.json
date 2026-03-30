@@ -1,14 +1,14 @@
 {
   "name": "3d-printer-business-website",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "",
-  "homepage": "https://github.com/DJskywrd/3d-printer-business-website#readme",
+  "homepage": "https://github.com/DJskywrd/ua-website#readme",
   "bugs": {
-    "url": "https://github.com/DJskywrd/3d-printer-business-website/issues"
+    "url": "https://github.com/DJskywrd/ua-website/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DJskywrd/3d-printer-business-website.git"
+    "url": "git+https://github.com/DJskywrd/ua-website.git"
   },
   "license": "ISC",
   "author": "DJskywrd",
